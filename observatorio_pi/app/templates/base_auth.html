@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block body %}
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container-fluid px-4">
+        <a class="navbar-brand" href="/dashboard">
+            <i class="bi bi-mortarboard-fill me-2"></i>Observatório PI
+        </a>
+        <div class="ms-auto d-flex align-items-center gap-3">
+            <span class="text-white-50 small">
+                <i class="bi bi-person-circle me-1"></i>{{ usuario.nome }}
+                <span class="badge bg-light text-primary ms-1">{{ usuario.tipo }}</span>
+            </span>
+            <a href="/logout" class="btn btn-outline-light btn-sm">
+                <i class="bi bi-box-arrow-right me-1"></i>Sair
+            </a>
+        </div>
+    </div>
+</nav>
+<div class="container-fluid">
+    <div class="row">
+        <nav class="col-md-2 d-none d-md-block sidebar">
+            <ul class="nav flex-column px-2">
+                <li class="nav-item">
+                    <a class="nav-link {% if active_page == 'dashboard' %}active{% endif %}"
+                       href="/dashboard">
+                        <i class="bi bi-speedometer2 me-2"></i>Dashboard
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if active_page == 'usuarios' %}active{% endif %}"
+                       href="/usuarios">
+                        <i class="bi bi-people me-2"></i>Usuários
+                    </a>
+                </li>
+            </ul>
+        </nav>
+        <main class="col-md-10 main-content">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,120 @@
+{% extends "base_auth.html" %}
+{% block title %}{% if editando %}Editar Usuário{% else %}Novo Usuário{% endif %} — Observatório PI{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb small">
+            <li class="breadcrumb-item"><a href="/dashboard" class="text-decoration-none">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="/usuarios" class="text-decoration-none">Usuários</a></li>
+            <li class="breadcrumb-item active">{% if editando %}Editar{% else %}Novo{% endif %}</li>
+        </ol>
+    </nav>
+    <h4 class="fw-bold mb-0">
+        {% if editando %}
+            <i class="bi bi-pencil-square me-2 text-primary"></i>Editar usuário
+        {% else %}
+            <i class="bi bi-person-plus me-2 text-primary"></i>Novo usuário
+        {% endif %}
+    </h4>
+</div>
+
+{% if erro %}
+<div class="alert alert-danger d-flex align-items-center gap-2 py-2 mb-4" role="alert">
+    <i class="bi bi-exclamation-triangle-fill"></i>
+    <span>{{ erro }}</span>
+</div>
+{% endif %}
+
+<div class="card p-4" style="max-width:600px;">
+    <form method="post"
+          action="{% if editando %}/usuarios/{{ editando.id }}/editar{% else %}/usuarios/novo{% endif %}"
+          novalidate>
+
+        <div class="mb-3">
+            <label for="nome" class="form-label fw-medium">
+                Nome completo <span class="text-danger">*</span>
+            </label>
+            <input type="text" id="nome" name="nome" class="form-control"
+                   placeholder="Ex.: João da Silva" maxlength="150"
+                   value="{{ form.nome if form else (editando.nome if editando else '') }}"
+                   required>
+        </div>
+
+        <div class="mb-3">
+            <label for="email" class="form-label fw-medium">
+                E-mail <span class="text-danger">*</span>
+            </label>
+            <input type="email" id="email" name="email" class="form-control"
+                   placeholder="Ex.: joao@email.com" maxlength="254"
+                   value="{{ form.email if form else (editando.email if editando else '') }}"
+                   required>
+        </div>
+
+        <div class="mb-3">
+            <label for="tipo" class="form-label fw-medium">
+                Tipo de usuário <span class="text-danger">*</span>
+            </label>
+            <select id="tipo" name="tipo" class="form-select" required>
+                {% set tipo_atual = form.tipo if form else (editando.tipo if editando else 'ALUNO') %}
+                {% for t in ["ALUNO", "PROFESSOR", "COORDENADOR", "EMPRESA", "ADMIN"] %}
+                <option value="{{ t }}" {% if tipo_atual == t %}selected{% endif %}>{{ t }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label for="senha" class="form-label fw-medium">
+                Senha {% if not editando %}<span class="text-danger">*</span>{% endif %}
+            </label>
+            {% if editando %}
+            <p class="text-muted small mb-1">Deixe em branco para manter a senha atual.</p>
+            {% endif %}
+            <div class="input-group">
+                <input type="password" id="senha" name="senha" class="form-control"
+                       placeholder="{% if editando %}Nova senha (opcional){% else %}Mínimo 8 caracteres{% endif %}"
+                       minlength="8" maxlength="128"
+                       {% if not editando %}required{% endif %}>
+                <button class="btn btn-outline-secondary" type="button" id="toggleSenha" tabindex="-1">
+                    <i class="bi bi-eye" id="iconeSenha"></i>
+                </button>
+            </div>
+        </div>
+
+        {% if editando %}
+        <div class="mb-4">
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="ativo" name="ativo"
+                       {% if editando.ativo %}checked{% endif %}>
+                <label class="form-check-label fw-medium" for="ativo">Usuário ativo</label>
+            </div>
+            <div class="form-text">Usuários inativos não conseguem fazer login.</div>
+        </div>
+        {% endif %}
+
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-lg me-1"></i>
+                {% if editando %}Salvar alterações{% else %}Criar usuário{% endif %}
+            </button>
+            <a href="/usuarios" class="btn btn-outline-secondary">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.getElementById('toggleSenha').addEventListener('click', function () {
+        const input = document.getElementById('senha');
+        const icone = document.getElementById('iconeSenha');
+        if (input.type === 'password') {
+            input.type = 'text';
+            icone.className = 'bi bi-eye-slash';
+        } else {
+            input.type = 'password';
+            icone.className = 'bi bi-eye';
+        }
+    });
+</script>
+{% endblock %}
