@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 from datetime import datetime, timezone
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
 from app.database import Base
@@ -13,3 +14,20 @@ class Project(Base):
     data_submissao = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     ultima_atualizacao = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     aluno_id = Column(Integer, ForeignKey("users.id"))
+=======
+from datetime import datetime, timezone
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
+from app.database import Base
+
+
+class Project(Base):
+    __tablename__ = "projects"
+
+    id = Column(Integer, primary_key=True, index=True)
+    titulo = Column(String, nullable=False)
+    descricao = Column(String)
+    versao = Column(Integer, default=1)
+    data_submissao = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    ultima_atualizacao = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    aluno_id = Column(Integer, ForeignKey("users.id"))
+>>>>>>> 0879f9fd2a49c43f324990846de2e8d558d87942
