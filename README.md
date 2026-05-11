@@ -1,108 +1,107 @@
 # Observatório de Projetos Integradores
 
-Sistema web para gerenciamento de Projetos Integradores do curso de ADS.
-Construído com **FastAPI + SQLAlchemy + Jinja2 + Bootstrap 5**.
+![Status](https://img.shields.io/badge/Status-Em%20Desenvolvimento-yellow)
+![Linguagem](https://img.shields.io/badge/Python-3.x-blue)
+![Faculdade](https://img.shields.io/badge/SENAC-ADS--2%C2%BA%20M%C3%B3dulo-orange)
+
+Este repositório contém o desenvolvimento do **Observatório de Projetos Integradores**, uma plataforma web centralizada projetada para organizar a submissão, avaliação e consulta de projetos acadêmicos do curso de Análise e Desenvolvimento de Sistemas (ADS) do SENAC.
 
 ---
 
-## Rodando localmente (Windows)
+## 🇧🇷 Português
 
-**Pré-requisito:** Python 3.11+ instalado.
+### 📝 Descrição do Sistema
+O projeto surge como uma solução para a descentralização no envio de Projetos Integradores (PIs). Atualmente, a dependência de e-mails e plataformas genéricas causa perda de documentos, dificuldade no controle de versões e alto tempo gasto na organização manual por parte dos professores e coordenação. O sistema centraliza todo esse fluxo em um ambiente seguro e organizado.
 
-```bash
-# 1. Crie o ambiente virtual (só na primeira vez)
-python -m venv .venv
+### 🎯 Objetivos
+* **Centralização:** Unificar a submissão e o armazenamento de todos os trabalhos em um único local.
+* **Avaliação Eficiente:** Permitir que professores avaliem os projetos diretamente na plataforma através de rubricas.
+* **Vitrine de Talentos:** Funcionar como um portfólio digital, permitindo que empresas parceiras visualizem projetos e identifiquem potenciais talentos para recrutamento.
 
-# 2. Instale as dependências
-.venv\Scripts\pip install -r observatorio_pi\requirements.txt
+### 🛠 Tecnologias Utilizadas
+* **Linguagem Principal:** Python
+* **Frontend:** HTML5, CSS3
+* **Versionamento:** Git e GitHub
+* **Gestão de Projeto:** Trello
 
-# 3. Inicie o servidor
-.venv\Scripts\python run.py
-```
+### 💼 Regras de Negócio
+* **Autenticação:** O acesso é restrito apenas a usuários cadastrados e logados.
+* **Gestão de Usuários:** O cadastro de novos usuários é uma funcionalidade exclusiva do Administrador (Coordenador).
+* **Painel do Aluno (CRUD):** Alunos podem submeter, visualizar, editar e excluir seus próprios projetos integradores.
+* **Painel do Professor:** Permite filtrar projetos por turma e realizar avaliações utilizando rubricas pré-definidas.
+* **Acesso para Empresas:** Empresas parceiras possuem um módulo de visualização para consulta de projetos e talentos.
 
-Ou simplesmente dê duplo clique em **`iniciar.bat`**.
+### 👥 Equipe do Projeto
+* Danilo Henrique
+* Edson Aguiar
+* Evencio Neto
+* Estevão Enoque
+* Igor Barbosa
+* Paulo Coutinho
 
-Acesse: http://127.0.0.1:8000  
-Login padrão: `admin@observatorio.pi` / `admin1234`
+### 🚀 Como Executar o Projeto
+1.  Clone este repositório:
+    ```bash
+    git clone [https://github.com/EdsonAguiar888/Observatorio_de_Projetos_Integradores.git](https://github.com/EdsonAguiar888/Observatorio_de_Projetos_Integradores.git)
+    ```
+2.  Navegue até o diretório do projeto:
+    ```bash
+    cd Observatorio_de_Projetos_Integradores
+    ```
+3.  Instale as dependências (se necessário) e execute o arquivo principal:
+    ```bash
+    python app.py
+    ```
 
----
-
-## Deploy gratuito no Render
-
-### Por que Render?
-- Deploy direto do GitHub (sem CLI)
-- Plano gratuito com HTTPS automático
-- Suporte nativo a Python/FastAPI
-- `render.yaml` já configurado neste repositório
-
-### Passo a passo
-
-#### 1. Suba o projeto no GitHub
-
-```bash
-git init
-git add .
-git commit -m "primeiro commit"
-git branch -M main
-git remote add origin https://github.com/SEU_USUARIO/observatorio-pi.git
-git push -u origin main
-```
-
-#### 2. Crie uma conta no Render
-
-Acesse [render.com](https://render.com) e crie uma conta gratuita (pode usar o GitHub para login).
-
-#### 3. Crie o serviço
-
-1. No dashboard do Render, clique em **"New +"** → **"Web Service"**
-2. Conecte seu repositório GitHub
-3. O Render detectará o `render.yaml` automaticamente e preencherá as configurações
-4. Clique em **"Create Web Service"**
-
-O deploy leva cerca de 2–3 minutos. Ao final, você receberá uma URL pública como:
-`https://observatorio-pi.onrender.com`
-
-#### 4. Variáveis de ambiente (opcional)
-
-No painel do Render → seu serviço → **Environment**, você pode alterar:
-
-| Variável         | Descrição                        | Padrão                    |
-|------------------|----------------------------------|---------------------------|
-| `SECRET_KEY`     | Chave JWT (gerada automaticamente) | —                       |
-| `ADMIN_EMAIL`    | E-mail do admin inicial          | `admin@observatorio.pi`   |
-| `ADMIN_PASSWORD` | Senha do admin inicial           | `admin1234`               |
-
-> **Importante:** Altere `ADMIN_PASSWORD` antes de usar em produção.
+### 📄 Documentação
+O link para a documentação técnica completa, incluindo requisitos e modelagem, pode ser encontrado aqui: [LINK DA DOCUMENTAÇÃO].
 
 ---
 
-## ⚠️ Limitações do plano gratuito do Render
+## 🇺🇸 English
 
-| Limitação | Detalhe |
-|-----------|---------|
-| **Sleep após inatividade** | O serviço "dorme" após 15 min sem requisições. A primeira requisição após o sleep demora ~30s para acordar. |
-| **Banco de dados efêmero** | O SQLite é armazenado no filesystem do container. **Os dados são apagados a cada redeploy.** Para persistência, migre para PostgreSQL (Render oferece plano gratuito de banco). |
-| **750h/mês** | Suficiente para um serviço rodando continuamente. |
+### 📝 System Description
+This project is a solution for the decentralization of Integrative Project (PI) submissions. Currently, relying on emails and generic platforms leads to document loss, version control issues, and significant time spent by teachers and coordinators on manual organization. The system centralizes this entire workflow in a secure and organized environment.
 
----
+### 🎯 Objectives
+* **Centralization:** Unify the submission and storage of all works in a single location.
+* **Efficient Evaluation:** Enable teachers to evaluate projects directly on the platform using rubrics.
+* **Talent Showcase:** Act as a digital portfolio, allowing partner companies to view projects and identify potential talents for recruitment.
 
-## Estrutura do projeto
+### 🛠 Technologies Used
+* **Primary Language:** Python
+* **Frontend:** HTML5, CSS3
+* **Versioning:** Git and GitHub
+* **Project Management:** Trello
 
-```
-.
-├── render.yaml              # Configuração de deploy no Render
-├── Dockerfile               # Para deploy via Docker (alternativa)
-├── run.py                   # Ponto de entrada local (Windows)
-├── iniciar.bat              # Atalho para rodar no Windows
-└── observatorio_pi/
-    ├── requirements.txt
-    ├── start.sh             # Script de inicialização em produção
-    └── app/
-        ├── main.py          # Rotas web (Jinja2)
-        ├── database.py      # Configuração SQLAlchemy
-        ├── models/          # User, Project
-        ├── schemas/         # Pydantic schemas
-        ├── routers/         # API REST (auth, users, projects)
-        ├── core/            # Config, segurança JWT
-        └── templates/       # HTML (Bootstrap 5)
-```
+### 💼 Business Rules
+* **Authentication:** Access is restricted to registered and logged-in users only.
+* **User Management:** Registering new users is an exclusive feature of the Administrator (Coordinator).
+* **Student Panel (CRUD):** Students can submit, view, edit, and delete their own integrative projects.
+* **Teacher Panel:** Allows filtering projects by class and performing evaluations using predefined rubrics.
+* **Company Access:** Partner companies have a viewing module to consult projects and talents.
+
+### 👥 Project Team
+* Danilo Henrique
+* Edson Aguiar
+* Evencio Neto
+* Estevão Enoque
+* Igor Barbosa
+* Paulo Coutinho
+
+### 🚀 How to Run the Project
+1.  Clone this repository:
+    ```bash
+    git clone [https://github.com/EdsonAguiar888/Observatorio_de_Projetos_Integradores.git](https://github.com/EdsonAguiar888/Observatorio_de_Projetos_Integradores.git)
+    ```
+2.  Navigate to the project directory:
+    ```bash
+    cd Observatorio_de_Projetos_Integradores
+    ```
+3.  Install dependencies (if necessary) and run the main file:
+    ```bash
+    python app.py
+    ```
+
+### 📄 Documentation
+The link to the full technical documentation, including requirements and modeling, can be found here: [DOCUMENTATION LINK].
