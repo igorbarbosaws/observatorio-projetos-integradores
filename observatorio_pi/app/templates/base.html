@@ -3,41 +3,237 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Observatório PI{% endblock %}</title>
+    <title>{% block title %}Observatório PI — SENAC{% endblock %}</title>
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
     <style>
-        body { background-color: #f0f2f5; }
-        .navbar-brand { font-weight: 700; letter-spacing: .5px; }
+        /* ── Paleta SENAC ──────────────────────────────────────────────────── */
+        :root {
+            --senac-blue:        #0D5EA5;   /* azul principal */
+            --senac-blue-dark:   #0A4A8A;   /* azul escuro (hover, navbar) */
+            --senac-blue-deeper: #083A6E;   /* azul mais profundo */
+            --senac-orange:      #F08A00;   /* laranja SENAC */
+            --senac-orange-dark: #D47A00;   /* laranja hover */
+            --senac-orange-light:#FFF3DC;   /* laranja claro (fundo) */
+            --senac-bg:          #F4F6F9;   /* fundo geral */
+            --senac-sidebar-bg:  #FFFFFF;
+            --senac-card-shadow: 0 1px 6px rgba(13,94,165,.10);
+            --senac-radius:      10px;
+        }
+
+        /* ── Reset / Base ──────────────────────────────────────────────────── */
+        *, *::before, *::after { box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background-color: var(--senac-bg);
+            color: #1a1a2e;
+        }
+
+        /* ── Override Bootstrap primary → azul SENAC ───────────────────────── */
+        .btn-primary {
+            background-color: var(--senac-blue);
+            border-color: var(--senac-blue);
+            color: #fff;
+            font-weight: 600;
+        }
+        .btn-primary:hover, .btn-primary:focus {
+            background-color: var(--senac-blue-dark);
+            border-color: var(--senac-blue-dark);
+            color: #fff;
+        }
+        .btn-outline-primary {
+            color: var(--senac-blue);
+            border-color: var(--senac-blue);
+        }
+        .btn-outline-primary:hover {
+            background-color: var(--senac-blue);
+            border-color: var(--senac-blue);
+            color: #fff;
+        }
+
+        /* Botão laranja SENAC */
+        .btn-senac-orange {
+            background-color: var(--senac-orange);
+            border-color: var(--senac-orange);
+            color: #fff;
+            font-weight: 600;
+        }
+        .btn-senac-orange:hover {
+            background-color: var(--senac-orange-dark);
+            border-color: var(--senac-orange-dark);
+            color: #fff;
+        }
+
+        /* ── Links ─────────────────────────────────────────────────────────── */
+        a { color: var(--senac-blue); }
+        a:hover { color: var(--senac-blue-dark); }
+
+        /* ── Cards ─────────────────────────────────────────────────────────── */
+        .card {
+            border: none;
+            border-radius: var(--senac-radius);
+            box-shadow: var(--senac-card-shadow);
+        }
+        .card-header {
+            border-radius: var(--senac-radius) var(--senac-radius) 0 0 !important;
+        }
+
+        /* ── Badges de tipo de usuário ──────────────────────────────────────── */
+        .badge-tipo { font-size: .72rem; }
+
+        /* ── Formulários ────────────────────────────────────────────────────── */
+        .form-control:focus, .form-select:focus {
+            border-color: var(--senac-blue);
+            box-shadow: 0 0 0 .2rem rgba(13,94,165,.18);
+        }
+        .form-check-input:checked {
+            background-color: var(--senac-blue);
+            border-color: var(--senac-blue);
+        }
+
+        /* ── Progress bars ──────────────────────────────────────────────────── */
+        .progress-bar.bg-primary { background-color: var(--senac-blue) !important; }
+
+        /* ── Navbar ─────────────────────────────────────────────────────────── */
+        .navbar-senac {
+            background: linear-gradient(90deg, var(--senac-blue-dark) 0%, var(--senac-blue) 100%);
+            box-shadow: 0 2px 8px rgba(10,74,138,.25);
+            min-height: 60px;
+        }
+        .navbar-senac .navbar-brand {
+            font-weight: 800;
+            font-size: 1.1rem;
+            letter-spacing: .3px;
+            color: #fff !important;
+        }
+        .navbar-senac .navbar-brand .brand-dot {
+            color: var(--senac-orange);
+        }
+
+        /* ── Sidebar ────────────────────────────────────────────────────────── */
         .sidebar {
-            min-height: calc(100vh - 56px);
-            background: #fff;
-            border-right: 1px solid #dee2e6;
-            padding-top: 1.5rem;
+            min-height: calc(100vh - 60px);
+            background: var(--senac-sidebar-bg);
+            border-right: 1px solid #e4eaf2;
+            padding-top: 1.25rem;
         }
         .sidebar .nav-link {
-            color: #495057;
+            color: #4a5568;
             border-radius: 8px;
-            margin-bottom: 4px;
-            padding: .5rem 1rem;
-        }
-        .sidebar .nav-link:hover,
-        .sidebar .nav-link.active {
-            background: #e9f0ff;
-            color: #0d6efd;
+            margin-bottom: 2px;
+            padding: .5rem .9rem;
+            font-size: .875rem;
+            font-weight: 500;
+            transition: background .15s, color .15s;
         }
         .sidebar .nav-link i { width: 20px; }
+        .sidebar .nav-link:hover {
+            background: #EBF3FC;
+            color: var(--senac-blue);
+        }
+        .sidebar .nav-link.active {
+            background: linear-gradient(90deg, #EBF3FC 0%, #D6E8F8 100%);
+            color: var(--senac-blue);
+            font-weight: 600;
+            border-left: 3px solid var(--senac-orange);
+            padding-left: calc(.9rem - 3px);
+        }
+        .sidebar-section-label {
+            font-size: .68rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            color: #9aa5b4;
+            padding: .75rem .9rem .25rem;
+        }
+
+        /* ── Main content ───────────────────────────────────────────────────── */
         .main-content { padding: 2rem; }
-        .card { border: none; box-shadow: 0 1px 4px rgba(0,0,0,.08); border-radius: 12px; }
-        .badge-tipo { font-size: .75rem; }
+
+        /* ── Page title ─────────────────────────────────────────────────────── */
+        .page-title { font-size: 1.35rem; font-weight: 700; color: #1a1a2e; }
+        .page-subtitle { font-size: .85rem; color: #6b7280; }
+
+        /* ── Stat cards ─────────────────────────────────────────────────────── */
+        .stat-card-icon {
+            width: 48px; height: 48px;
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.35rem;
+        }
+        .stat-card-icon.blue   { background: rgba(13,94,165,.12); color: var(--senac-blue); }
+        .stat-card-icon.orange { background: rgba(240,138,0,.12);  color: var(--senac-orange); }
+        .stat-card-icon.green  { background: rgba(22,163,74,.12);  color: #16a34a; }
+        .stat-card-icon.gray   { background: rgba(107,114,128,.12);color: #6b7280; }
+
+        /* ── Tables ─────────────────────────────────────────────────────────── */
+        .table thead th {
+            font-size: .78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .05em;
+            color: #6b7280;
+            border-bottom: 2px solid #e4eaf2;
+            background: #f8fafc;
+        }
+        .table-hover tbody tr:hover { background: #f0f7ff; }
+
+        /* ── Alerts ─────────────────────────────────────────────────────────── */
+        .alert-success { background: #ecfdf5; border-color: #a7f3d0; color: #065f46; }
+        .alert-danger  { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
+        .alert-primary { background: #eff6ff; border-color: #bfdbfe; color: #1e40af; }
+
+        /* ── Breadcrumb ─────────────────────────────────────────────────────── */
+        .breadcrumb-item a { color: var(--senac-blue); text-decoration: none; }
+        .breadcrumb-item a:hover { text-decoration: underline; }
+
+        /* ── Login page ─────────────────────────────────────────────────────── */
+        .login-wrapper {
+            min-height: 100vh;
+            background: linear-gradient(135deg, var(--senac-blue-deeper) 0%, var(--senac-blue) 60%, #1a7fd4 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        .login-card {
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(10,74,138,.30);
+            width: 100%;
+            max-width: 420px;
+            overflow: hidden;
+        }
+        .login-card-header {
+            background: linear-gradient(135deg, var(--senac-blue-dark) 0%, var(--senac-blue) 100%);
+            padding: 2rem 2rem 1.5rem;
+            text-align: center;
+            color: #fff;
+        }
+        .login-card-header .brand-name {
+            font-size: 1.4rem;
+            font-weight: 800;
+            letter-spacing: .3px;
+        }
+        .login-card-header .brand-name span { color: var(--senac-orange); }
+        .login-card-body { padding: 2rem; }
+
+        /* ── Scrollbar ──────────────────────────────────────────────────────── */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--senac-blue); }
     </style>
 </head>
 <body>
 
 {% block body %}
-<!-- conteúdo padrão (sem autenticação): centralizado -->
-<div class="min-vh-100 d-flex align-items-center justify-content-center">
-    <div class="w-100" style="max-width:420px; padding:1rem;">
+<div class="login-wrapper">
+    <div class="w-100" style="max-width:420px;">
         {% block content %}{% endblock %}
     </div>
 </div>

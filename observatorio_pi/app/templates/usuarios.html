@@ -2,27 +2,25 @@
 {% block title %}Usuários — Observatório PI{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex justify-content-between align-items-start mb-4">
     <div>
-        <h4 class="fw-bold mb-0">Usuários</h4>
-        <p class="text-muted small mb-0">Gerencie os usuários do sistema</p>
+        <div class="page-title">Usuários</div>
+        <div class="page-subtitle">Gerencie os usuários do sistema</div>
     </div>
-    <a href="/usuarios/novo" class="btn btn-primary">
+    <a href="/usuarios/novo" class="btn btn-primary" style="border-radius:8px;">
         <i class="bi bi-person-plus me-2"></i>Novo usuário
     </a>
 </div>
 
 {% if sucesso %}
-<div class="alert alert-success alert-dismissible d-flex align-items-center gap-2 py-2" role="alert">
-    <i class="bi bi-check-circle-fill"></i>
-    <span>{{ sucesso }}</span>
+<div class="alert alert-success alert-dismissible d-flex align-items-center gap-2 py-2 mb-4" role="alert">
+    <i class="bi bi-check-circle-fill flex-shrink-0"></i><span>{{ sucesso }}</span>
     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
 </div>
 {% endif %}
 {% if erro %}
-<div class="alert alert-danger alert-dismissible d-flex align-items-center gap-2 py-2" role="alert">
-    <i class="bi bi-exclamation-triangle-fill"></i>
-    <span>{{ erro }}</span>
+<div class="alert alert-danger alert-dismissible d-flex align-items-center gap-2 py-2 mb-4" role="alert">
+    <i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i><span>{{ erro }}</span>
     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
 </div>
 {% endif %}
@@ -31,7 +29,7 @@
 <div class="card p-3 mb-4">
     <form method="get" action="/usuarios" class="row g-2 align-items-end">
         <div class="col-sm-4">
-            <label class="form-label small fw-medium mb-1">Tipo</label>
+            <label class="form-label fw-semibold mb-1" style="font-size:.82rem;color:#374151;">Tipo</label>
             <select name="filtro_tipo" class="form-select form-select-sm">
                 <option value="">Todos os tipos</option>
                 {% for t in ["ALUNO", "PROFESSOR", "COORDENADOR", "EMPRESA", "ADMIN"] %}
@@ -40,7 +38,7 @@
             </select>
         </div>
         <div class="col-sm-4">
-            <label class="form-label small fw-medium mb-1">Status</label>
+            <label class="form-label fw-semibold mb-1" style="font-size:.82rem;color:#374151;">Status</label>
             <select name="filtro_ativo" class="form-select form-select-sm">
                 <option value="">Todos</option>
                 <option value="true"  {% if filtro_ativo == "true"  %}selected{% endif %}>Ativos</option>
@@ -48,10 +46,10 @@
             </select>
         </div>
         <div class="col-sm-4 d-flex gap-2">
-            <button type="submit" class="btn btn-primary btn-sm">
+            <button type="submit" class="btn btn-primary btn-sm" style="border-radius:8px;">
                 <i class="bi bi-funnel me-1"></i>Filtrar
             </button>
-            <a href="/usuarios" class="btn btn-outline-secondary btn-sm">Limpar</a>
+            <a href="/usuarios" class="btn btn-outline-secondary btn-sm" style="border-radius:8px;">Limpar</a>
         </div>
     </form>
 </div>
@@ -60,66 +58,66 @@
 <div class="card">
     <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
-            <thead class="table-light">
+            <thead>
                 <tr>
-                    <th class="ps-3">#</th>
+                    <th class="ps-4">#</th>
                     <th>Nome</th>
                     <th>E-mail</th>
                     <th>Tipo</th>
                     <th>Status</th>
-                    <th class="text-end pe-3">Ações</th>
+                    <th class="text-end pe-4">Ações</th>
                 </tr>
             </thead>
             <tbody>
                 {% if usuarios %}
-                    {% for u in usuarios %}
-                    <tr>
-                        <td class="ps-3 text-muted small">{{ u.id }}</td>
-                        <td class="fw-medium">{{ u.nome }}</td>
-                        <td class="text-muted small">{{ u.email }}</td>
-                        <td>
-                            {% set cores = {
-                                "ALUNO": "primary",
-                                "PROFESSOR": "success",
-                                "COORDENADOR": "warning",
-                                "EMPRESA": "info",
-                                "ADMIN": "danger"
-                            } %}
-                            <span class="badge bg-{{ cores.get(u.tipo, 'secondary') }} badge-tipo">
-                                {{ u.tipo }}
-                            </span>
-                        </td>
-                        <td>
-                            {% if u.ativo %}
-                            <span class="badge bg-success-subtle text-success border border-success-subtle">
-                                <i class="bi bi-circle-fill me-1" style="font-size:.5rem;"></i>Ativo
-                            </span>
-                            {% else %}
-                            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
-                                <i class="bi bi-circle me-1" style="font-size:.5rem;"></i>Inativo
-                            </span>
-                            {% endif %}
-                        </td>
-                        <td class="text-end pe-3">
-                            <a href="/usuarios/{{ u.id }}/editar"
-                               class="btn btn-outline-primary btn-sm me-1" title="Editar">
-                                <i class="bi bi-pencil"></i>
-                            </a>
-                            <button type="button"
-                                    class="btn btn-outline-danger btn-sm"
-                                    title="Excluir"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#modalDeletar"
-                                    data-id="{{ u.id }}"
-                                    data-nome="{{ u.nome }}">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </td>
-                    </tr>
-                    {% endfor %}
+                {% for u in usuarios %}
+                <tr>
+                    <td class="ps-4 text-muted small">{{ u.id }}</td>
+                    <td class="fw-semibold" style="color:#1a1a2e;">{{ u.nome }}</td>
+                    <td class="text-muted small">{{ u.email }}</td>
+                    <td>
+                        {% set cor_map = {
+                            "ALUNO":       ("eff6ff", "1e40af", "bfdbfe"),
+                            "PROFESSOR":   ("ecfdf5", "065f46", "a7f3d0"),
+                            "COORDENADOR": ("fffbeb", "92400e", "fde68a"),
+                            "EMPRESA":     ("f0fdf4", "166534", "bbf7d0"),
+                            "ADMIN":       ("fef2f2", "991b1b", "fecaca"),
+                        } %}
+                        {% set cores = cor_map.get(u.tipo, ("f3f4f6","374151","d1d5db")) %}
+                        <span class="badge badge-tipo"
+                              style="background:#{{ cores[0] }};color:#{{ cores[1] }};border:1px solid #{{ cores[2] }};">
+                            {{ u.tipo }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if u.ativo %}
+                        <span class="badge" style="background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0;font-size:.72rem;">
+                            <i class="bi bi-circle-fill me-1" style="font-size:.45rem;"></i>Ativo
+                        </span>
+                        {% else %}
+                        <span class="badge" style="background:#f3f4f6;color:#6b7280;border:1px solid #d1d5db;font-size:.72rem;">
+                            <i class="bi bi-circle me-1" style="font-size:.45rem;"></i>Inativo
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end pe-4">
+                        <a href="/usuarios/{{ u.id }}/editar"
+                           class="btn btn-outline-primary btn-sm me-1" style="border-radius:6px;" title="Editar">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        <button type="button"
+                                class="btn btn-sm btn-outline-danger" style="border-radius:6px;"
+                                title="Excluir"
+                                data-bs-toggle="modal" data-bs-target="#modalDeletar"
+                                data-id="{{ u.id }}" data-nome="{{ u.nome }}">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
                 {% else %}
                 <tr>
-                    <td colspan="6" class="text-center text-muted py-5">
+                    <td colspan="6" class="text-center py-5" style="color:#9aa5b4;">
                         <i class="bi bi-people fs-2 d-block mb-2"></i>
                         Nenhum usuário encontrado
                     </td>
@@ -129,7 +127,7 @@
         </table>
     </div>
     {% if usuarios %}
-    <div class="px-3 py-2 border-top text-muted small">
+    <div class="px-4 py-2 border-top" style="font-size:.78rem;color:#9aa5b4;">
         {{ usuarios | length }} usuário(s) encontrado(s)
     </div>
     {% endif %}
@@ -138,19 +136,19 @@
 <!-- Modal de confirmação -->
 <div class="modal fade" id="modalDeletar" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header border-0">
-                <h5 class="modal-title fw-semibold">Confirmar exclusão</h5>
+        <div class="modal-content" style="border-radius:12px;border:none;box-shadow:0 20px 60px rgba(0,0,0,.15);">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" style="color:#1a1a2e;">Confirmar exclusão</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body text-muted">
-                Tem certeza que deseja excluir o usuário <strong id="nomeUsuario"></strong>?
+            <div class="modal-body" style="color:#6b7280;">
+                Tem certeza que deseja excluir o usuário <strong id="nomeUsuario" style="color:#1a1a2e;"></strong>?
                 Esta ação não pode ser desfeita.
             </div>
-            <div class="modal-footer border-0">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-outline-secondary" style="border-radius:8px;" data-bs-dismiss="modal">Cancelar</button>
                 <form id="formDeletar" method="post">
-                    <button type="submit" class="btn btn-danger">
+                    <button type="submit" class="btn btn-danger" style="border-radius:8px;">
                         <i class="bi bi-trash me-1"></i>Excluir
                     </button>
                 </form>
@@ -162,10 +160,10 @@
 
 {% block scripts %}
 <script>
-    document.getElementById('modalDeletar').addEventListener('show.bs.modal', function (e) {
-        const btn = e.relatedTarget;
-        document.getElementById('nomeUsuario').textContent = btn.dataset.nome;
-        document.getElementById('formDeletar').action = `/usuarios/${btn.dataset.id}/deletar`;
-    });
+document.getElementById('modalDeletar').addEventListener('show.bs.modal', function (e) {
+    const btn = e.relatedTarget;
+    document.getElementById('nomeUsuario').textContent = btn.dataset.nome;
+    document.getElementById('formDeletar').action = `/usuarios/${btn.dataset.id}/deletar`;
+});
 </script>
 {% endblock %}

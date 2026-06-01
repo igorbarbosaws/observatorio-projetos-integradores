@@ -1,78 +1,97 @@
 {% extends "base.html" %}
 {% block title %}Login — Observatório PI{% endblock %}
 
-{% block content %}
-<div class="text-center mb-4">
-    <i class="bi bi-mortarboard-fill text-primary" style="font-size: 3rem;"></i>
-    <h4 class="mt-2 fw-bold">Observatório PI</h4>
-    <p class="text-muted small">Projetos Integradores — ADS</p>
-</div>
+{% block body %}
+<div class="login-wrapper">
+    <div class="login-card">
 
-<div class="card p-4 shadow-sm">
-    <h5 class="mb-4 fw-semibold">Entrar no sistema</h5>
-
-    {% if erro %}
-    <div class="alert alert-danger d-flex align-items-center gap-2 py-2" role="alert">
-        <i class="bi bi-exclamation-triangle-fill"></i>
-        <span>{{ erro }}</span>
-    </div>
-    {% endif %}
-
-    <form method="post" action="/login" novalidate>
-        <div class="mb-3">
-            <label for="email" class="form-label fw-medium">E-mail</label>
-            <div class="input-group">
-                <span class="input-group-text"><i class="bi bi-envelope"></i></span>
-                <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    class="form-control"
-                    placeholder="seu@email.com"
-                    autocomplete="email"
-                    required
-                >
+        <!-- Cabeçalho azul -->
+        <div class="login-card-header">
+            <div class="d-flex align-items-center justify-content-center gap-2 mb-3">
+                <div style="background:var(--senac-orange);border-radius:10px;width:42px;height:42px;
+                            display:flex;align-items:center;justify-content:center;">
+                    <i class="bi bi-mortarboard-fill text-white fs-5"></i>
+                </div>
             </div>
+            <div class="brand-name mb-1">Observatório <span>PI</span></div>
+            <div style="font-size:.82rem;opacity:.75;">Projetos Integradores — ADS · SENAC</div>
         </div>
 
-        <div class="mb-4">
-            <label for="senha" class="form-label fw-medium">Senha</label>
-            <div class="input-group">
-                <span class="input-group-text"><i class="bi bi-lock"></i></span>
-                <input
-                    type="password"
-                    id="senha"
-                    name="senha"
-                    class="form-control"
-                    placeholder="••••••••"
-                    autocomplete="current-password"
-                    required
-                >
-                <button class="btn btn-outline-secondary" type="button" id="toggleSenha" tabindex="-1">
-                    <i class="bi bi-eye" id="iconeSenha"></i>
+        <!-- Corpo do formulário -->
+        <div class="login-card-body">
+            <p class="fw-semibold mb-4" style="color:#1a1a2e;font-size:.95rem;">
+                Acesse sua conta
+            </p>
+
+            {% if erro %}
+            <div class="alert alert-danger d-flex align-items-center gap-2 py-2 mb-4" role="alert">
+                <i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i>
+                <span style="font-size:.875rem;">{{ erro }}</span>
+            </div>
+            {% endif %}
+
+            <form method="post" action="/login" novalidate>
+                <div class="mb-3">
+                    <label for="email" class="form-label fw-semibold" style="font-size:.85rem;color:#374151;">
+                        E-mail
+                    </label>
+                    <div class="input-group">
+                        <span class="input-group-text" style="background:#f8fafc;border-color:#e4eaf2;">
+                            <i class="bi bi-envelope" style="color:var(--senac-blue);"></i>
+                        </span>
+                        <input type="email" id="email" name="email"
+                               class="form-control" style="border-color:#e4eaf2;"
+                               placeholder="seu@email.com"
+                               autocomplete="email" required>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label for="senha" class="form-label fw-semibold" style="font-size:.85rem;color:#374151;">
+                        Senha
+                    </label>
+                    <div class="input-group">
+                        <span class="input-group-text" style="background:#f8fafc;border-color:#e4eaf2;">
+                            <i class="bi bi-lock" style="color:var(--senac-blue);"></i>
+                        </span>
+                        <input type="password" id="senha" name="senha"
+                               class="form-control" style="border-color:#e4eaf2;"
+                               placeholder="••••••••"
+                               autocomplete="current-password" required>
+                        <button class="btn" type="button" id="toggleSenha" tabindex="-1"
+                                style="background:#f8fafc;border-color:#e4eaf2;border-left:none;">
+                            <i class="bi bi-eye" id="iconeSenha" style="color:#9aa5b4;"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold"
+                        style="border-radius:8px;font-size:.95rem;">
+                    <i class="bi bi-box-arrow-in-right me-2"></i>Entrar
                 </button>
-            </div>
+            </form>
         </div>
 
-        <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold">
-            <i class="bi bi-box-arrow-in-right me-2"></i>Entrar
-        </button>
-    </form>
+        <!-- Rodapé -->
+        <div class="text-center pb-4" style="font-size:.75rem;color:#9aa5b4;">
+            <i class="bi bi-shield-lock me-1"></i>Acesso restrito a usuários cadastrados
+        </div>
+    </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-    document.getElementById('toggleSenha').addEventListener('click', function () {
-        const input = document.getElementById('senha');
-        const icone = document.getElementById('iconeSenha');
-        if (input.type === 'password') {
-            input.type = 'text';
-            icone.className = 'bi bi-eye-slash';
-        } else {
-            input.type = 'password';
-            icone.className = 'bi bi-eye';
-        }
-    });
+document.getElementById('toggleSenha').addEventListener('click', function () {
+    const input = document.getElementById('senha');
+    const icone = document.getElementById('iconeSenha');
+    if (input.type === 'password') {
+        input.type = 'text';
+        icone.className = 'bi bi-eye-slash';
+    } else {
+        input.type = 'password';
+        icone.className = 'bi bi-eye';
+    }
+});
 </script>
 {% endblock %}
