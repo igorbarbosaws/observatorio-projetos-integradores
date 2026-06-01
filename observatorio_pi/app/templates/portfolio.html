@@ -1,0 +1,168 @@
+{% extends "base_auth.html" %}
+{% block title %}Portfólio — Observatório PI{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <h4 class="fw-bold mb-0">
+        <i class="bi bi-grid-3x3-gap me-2 text-primary"></i>Portfólio de Projetos
+    </h4>
+    <p class="text-muted small">Explore os projetos desenvolvidos pelos alunos do curso de ADS</p>
+</div>
+
+<!-- Barra de busca e filtros -->
+<div class="card p-3 mb-4">
+    <form method="get" action="/portfolio" class="row g-2 align-items-end">
+        <div class="col-sm-4">
+            <label class="form-label small fw-medium mb-1">Buscar</label>
+            <div class="input-group input-group-sm">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="text" name="busca" class="form-control"
+                       placeholder="Título, descrição ou tecnologia..."
+                       value="{{ busca }}">
+            </div>
+        </div>
+        <div class="col-sm-3">
+            <label class="form-label small fw-medium mb-1">Turma</label>
+            <select name="filtro_turma" class="form-select form-select-sm">
+                <option value="">Todas as turmas</option>
+                {% for t in turmas %}
+                <option value="{{ t }}" {% if filtro_turma == t %}selected{% endif %}>{{ t }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-sm-3">
+            <label class="form-label small fw-medium mb-1">Semestre</label>
+            <select name="filtro_semestre" class="form-select form-select-sm">
+                <option value="">Todos os semestres</option>
+                {% for s in semestres %}
+                <option value="{{ s }}" {% if filtro_semestre == s %}selected{% endif %}>{{ s }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-sm-2 d-flex gap-2">
+            <button type="submit" class="btn btn-primary btn-sm w-100">
+                <i class="bi bi-search me-1"></i>Buscar
+            </button>
+        </div>
+        {% if busca or filtro_turma or filtro_semestre %}
+        <div class="col-12">
+            <a href="/portfolio" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-x-circle me-1"></i>Limpar filtros
+            </a>
+        </div>
+        {% endif %}
+    </form>
+</div>
+
+<!-- Resultados -->
+{% if projetos %}
+<div class="mb-3 text-muted small">
+    <i class="bi bi-grid me-1"></i>{{ projetos | length }} projeto(s) encontrado(s)
+</div>
+
+<div class="row g-4">
+    {% for p in projetos %}
+    <div class="col-md-6 col-xl-4">
+        <div class="card h-100 portfolio-card">
+            <!-- Cabeçalho colorido -->
+            <div class="card-header border-0 pt-4 pb-3 px-4"
+                 style="background: linear-gradient(135deg, #e9f0ff 0%, #f0f7ff 100%);">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="rounded-3 bg-primary bg-opacity-10 p-2 mb-2">
+                        <i class="bi bi-folder2-open text-primary fs-5"></i>
+                    </div>
+                    {% if p.status == 'AVALIADO' %}
+                    <span class="badge bg-success-subtle text-success border border-success-subtle">
+                        <i class="bi bi-patch-check me-1"></i>Avaliado
+                    </span>
+                    {% else %}
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle">Submetido</span>
+                    {% endif %}
+                </div>
+                <h6 class="fw-bold mb-1 lh-sm">{{ p.titulo }}</h6>
+                {% if p.aluno %}
+                <div class="text-muted small">
+                    <i class="bi bi-person me-1"></i>{{ p.aluno.nome }}
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="card-body px-4 py-3">
+                {% if p.descricao %}
+                <p class="text-muted small mb-3"
+                   style="display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;">
+                    {{ p.descricao }}
+                </p>
+                {% endif %}
+
+                <!-- Tecnologias -->
+                {% if p.tecnologias %}
+                <div class="d-flex flex-wrap gap-1 mb-3">
+                    {% for tag in p.tecnologias.split(',') %}
+                    {% set tag = tag.strip() %}
+                    {% if tag %}
+                    <span class="badge bg-light text-dark border" style="font-size:.7rem;">{{ tag }}</span>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <!-- Nota média (se avaliado) -->
+                {% if p.avaliacoes %}
+                {% set soma_notas = namespace(v=0) %}
+                {% for av in p.avaliacoes %}{% set soma_notas.v = soma_notas.v + av.nota_final %}{% endfor %}
+                {% set media_p = soma_notas.v / p.avaliacoes|length %}
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    <div class="d-flex gap-1">
+                        {% for i in range(1, 6) %}
+                        <i class="bi bi-star{% if (media_p / 2) >= i %}-fill{% elif (media_p / 2) >= (i - 0.5) %}-half{% endif %} text-warning small"></i>
+                        {% endfor %}
+                    </div>
+                    <span class="small fw-medium">{{ "%.1f"|format(media_p) }}/10</span>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="card-footer bg-transparent border-top px-4 py-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="d-flex gap-2">
+                        {% if p.turma %}
+                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle" style="font-size:.7rem;">
+                            {{ p.turma }}
+                        </span>
+                        {% endif %}
+                        {% if p.semestre %}
+                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle" style="font-size:.7rem;">
+                            {{ p.semestre }}
+                        </span>
+                        {% endif %}
+                    </div>
+                    <a href="/projetos/{{ p.id }}" class="btn btn-outline-primary btn-sm">
+                        Ver detalhes <i class="bi bi-arrow-right ms-1"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% else %}
+<div class="card">
+    <div class="text-center text-muted py-5">
+        <i class="bi bi-search fs-2 d-block mb-2"></i>
+        Nenhum projeto encontrado com os filtros aplicados.
+        <div class="mt-3">
+            <a href="/portfolio" class="btn btn-outline-primary btn-sm">Ver todos os projetos</a>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<style>
+    .portfolio-card { transition: box-shadow .15s, transform .15s; border: none; box-shadow: 0 1px 4px rgba(0,0,0,.08); border-radius: 12px; overflow: hidden; }
+    .portfolio-card:hover { box-shadow: 0 6px 20px rgba(0,0,0,.12); transform: translateY(-3px); }
+</style>
+{% endblock %}

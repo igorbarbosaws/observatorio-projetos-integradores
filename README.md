@@ -40,18 +40,45 @@ O projeto surge como uma solução para a descentralização no envio de Projeto
 * Paulo Coutinho
 
 ### 🚀 Como Executar o Projeto
+
+#### Pré-requisitos
+* Python 3.11 ou superior instalado
+
+#### Passos
+
 1.  Clone este repositório:
     ```bash
-    git clone [https://github.com/EdsonAguiar888/Observatorio_de_Projetos_Integradores.git](https://github.com/EdsonAguiar888/Observatorio_de_Projetos_Integradores.git)
+    git clone https://github.com/EdsonAguiar888/Observatorio_de_Projetos_Integradores.git
+    cd observatorio-projetos-integradores
     ```
-2.  Navegue até o diretório do projeto:
+
+2.  Crie e ative o ambiente virtual:
     ```bash
-    cd Observatorio_de_Projetos_Integradores
+    python -m venv .venv
+    # Windows
+    .venv\Scripts\activate
+    # Linux/macOS
+    source .venv/bin/activate
     ```
-3.  Instale as dependências (se necessário) e execute o arquivo principal:
+
+3.  Instale as dependências:
     ```bash
-    python app.py
+    pip install -r observatorio_pi/requirements.txt
     ```
+
+4.  Execute o projeto:
+    ```bash
+    python run.py
+    ```
+    Ou no Windows, dê duplo clique em `iniciar.bat`.
+
+5.  Acesse no navegador: **http://127.0.0.1:8000**
+
+    Login padrão:
+    - E-mail: `admin@observatorio.pi`
+    - Senha: `admin1234`
+
+> ⚠️ Altere a senha do admin após o primeiro login.
 
 ### 📄 Documentação
 O link para a documentação técnica completa, incluindo requisitos e modelagem, pode ser encontrado aqui: [LINK DA DOCUMENTAÇÃO].
@@ -90,18 +117,45 @@ This project is a solution for the decentralization of Integrative Project (PI) 
 * Paulo Coutinho
 
 ### 🚀 How to Run the Project
+
+#### Prerequisites
+* Python 3.11 or higher installed
+
+#### Steps
+
 1.  Clone this repository:
     ```bash
-    git clone [https://github.com/EdsonAguiar888/Observatorio_de_Projetos_Integradores.git](https://github.com/EdsonAguiar888/Observatorio_de_Projetos_Integradores.git)
+    git clone https://github.com/EdsonAguiar888/Observatorio_de_Projetos_Integradores.git
+    cd observatorio-projetos-integradores
     ```
-2.  Navigate to the project directory:
+
+2.  Create and activate the virtual environment:
     ```bash
-    cd Observatorio_de_Projetos_Integradores
+    python -m venv .venv
+    # Windows
+    .venv\Scripts\activate
+    # Linux/macOS
+    source .venv/bin/activate
     ```
-3.  Install dependencies (if necessary) and run the main file:
+
+3.  Install dependencies:
     ```bash
-    python app.py
+    pip install -r observatorio_pi/requirements.txt
     ```
+
+4.  Run the project:
+    ```bash
+    python run.py
+    ```
+    Or on Windows, double-click `iniciar.bat`.
+
+5.  Open in browser: **http://127.0.0.1:8000**
+
+    Default login:
+    - Email: `admin@observatorio.pi`
+    - Password: `admin1234`
+
+> ⚠️ Change the admin password after the first login.
 
 ### 📄 Documentation
 The link to the full technical documentation, including requirements and modeling, can be found here: [DOCUMENTATION LINK].

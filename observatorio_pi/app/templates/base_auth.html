@@ -7,7 +7,7 @@
             <i class="bi bi-mortarboard-fill me-2"></i>Observatório PI
         </a>
         <div class="ms-auto d-flex align-items-center gap-3">
-            <span class="text-white-50 small">
+            <span class="text-white-50 small d-none d-sm-inline">
                 <i class="bi bi-person-circle me-1"></i>{{ usuario.nome }}
                 <span class="badge bg-light text-primary ms-1">{{ usuario.tipo }}</span>
             </span>
@@ -17,24 +17,71 @@
         </div>
     </div>
 </nav>
+
 <div class="container-fluid">
     <div class="row">
+        <!-- Sidebar -->
         <nav class="col-md-2 d-none d-md-block sidebar">
             <ul class="nav flex-column px-2">
+
                 <li class="nav-item">
                     <a class="nav-link {% if active_page == 'dashboard' %}active{% endif %}"
                        href="/dashboard">
                         <i class="bi bi-speedometer2 me-2"></i>Dashboard
                     </a>
                 </li>
+
+                <!-- Projetos: visível para todos -->
+                <li class="nav-item">
+                    <a class="nav-link {% if active_page == 'projetos' %}active{% endif %}"
+                       href="/projetos">
+                        <i class="bi bi-folder2-open me-2"></i>
+                        {% if usuario.tipo == 'ALUNO' %}Meus Projetos{% else %}Projetos{% endif %}
+                    </a>
+                </li>
+
+                <!-- Portfólio: visível para todos exceto ALUNO -->
+                {% if usuario.tipo != 'ALUNO' %}
+                <li class="nav-item">
+                    <a class="nav-link {% if active_page == 'portfolio' %}active{% endif %}"
+                       href="/portfolio">
+                        <i class="bi bi-grid-3x3-gap me-2"></i>Portfólio
+                    </a>
+                </li>
+                {% endif %}
+
+                <!-- Usuários: apenas Admin/Coordenador -->
+                {% if usuario.tipo in ('ADMIN', 'COORDENADOR') %}
                 <li class="nav-item">
                     <a class="nav-link {% if active_page == 'usuarios' %}active{% endif %}"
                        href="/usuarios">
                         <i class="bi bi-people me-2"></i>Usuários
                     </a>
                 </li>
+                {% endif %}
+
+                <!-- Relatórios: apenas Admin/Coordenador -->
+                {% if usuario.tipo in ('ADMIN', 'COORDENADOR') %}
+                <li class="nav-item">
+                    <a class="nav-link {% if active_page == 'relatorios' %}active{% endif %}"
+                       href="/relatorios">
+                        <i class="bi bi-bar-chart-line me-2"></i>Relatórios
+                    </a>
+                </li>
+                {% endif %}
+
             </ul>
+
+            <!-- Separador e info do usuário no rodapé da sidebar -->
+            <div class="px-3 mt-4 pt-3 border-top">
+                <div class="small text-muted">
+                    <div class="fw-medium text-truncate">{{ usuario.nome }}</div>
+                    <div class="text-truncate">{{ usuario.email }}</div>
+                </div>
+            </div>
         </nav>
+
+        <!-- Conteúdo principal -->
         <main class="col-md-10 main-content">
             {% block content %}{% endblock %}
         </main>
