@@ -98,11 +98,12 @@
         <div class="card p-3">
             <div class="fw-semibold mb-2" style="font-size:.85rem;color:#1a1a2e;">Ações</div>
             <div class="d-flex flex-column gap-2">
-                {% set pode_finalizar = (usuario.tipo in ('PROFESSOR','ADMIN','COORDENADOR')) or
-                    (usuario.tipo == 'ALUNO' and equipe.scrum_master_id == usuario.id) %}
+                {% set pode_finalizar = (usuario.tipo == 'ALUNO' and equipe.scrum_master_id == usuario.id) %}
                 {% if pode_finalizar and equipe.status != 'FINALIZADO' %}
                 <form method="post" action="/equipes/{{ equipe.id }}/finalizar">
-                    <button type="submit" class="btn btn-success w-100 text-start" style="border-radius:8px;"><i class="bi bi-check2-circle me-2"></i>Marcar como finalizado</button>
+                    <button type="submit" class="btn btn-success w-100 text-start" style="border-radius:8px;">
+                        <i class="bi bi-check2-circle me-2"></i>Marcar como finalizado
+                    </button>
                 </form>
                 {% endif %}
                 {% set pode_excluir_equipe = (usuario.tipo in ('ADMIN','COORDENADOR')) or
@@ -124,10 +125,10 @@
         <div class="card mb-4">
             <div class="d-flex justify-content-between align-items-center px-4 pt-4 pb-3">
                 <div class="fw-bold" style="color:#1a1a2e;"><i class="bi bi-file-earmark-text me-2" style="color:var(--senac-blue);"></i>Entregas do projeto</div>
-                {% set pode_entregar = (usuario.tipo in ('PROFESSOR','ADMIN','COORDENADOR')) or
-                    (usuario.tipo == 'ALUNO' and equipe.status != 'FINALIZADO' and
+                {# Botão nova entrega: apenas alunos membros da equipe, enquanto não finalizada #}
+                {% set pode_entregar = (usuario.tipo == 'ALUNO' and equipe.status != 'FINALIZADO' and
                     (equipe.scrum_master_id == usuario.id or
-                    equipe.membros|selectattr('aluno_id','equalto',usuario.id)|list|length > 0)) %}
+                     equipe.membros|selectattr('aluno_id','equalto',usuario.id)|list|length > 0)) %}
                 {% if pode_entregar %}
                 <a href="/equipes/{{ equipe.id }}/entregas/nova" class="btn btn-primary btn-sm" style="border-radius:8px;"><i class="bi bi-plus-circle me-1"></i>Nova entrega</a>
                 {% endif %}
@@ -142,10 +143,12 @@
                             <div class="small" style="color:#9aa5b4;"><i class="bi bi-person me-1"></i>{{ e.autor.nome }} · v{{ e.versao }} · {{ e.criado_em.strftime('%d/%m/%Y') if e.criado_em else '' }}</div>
                         </div>
                         <div class="d-flex gap-1">
-                            {% set pode_editar = (usuario.tipo in ('PROFESSOR','ADMIN','COORDENADOR')) or (usuario.tipo == 'ALUNO' and e.autor_id == usuario.id) %}
-                            {% set pode_excluir = (usuario.tipo in ('PROFESSOR','ADMIN','COORDENADOR')) or (usuario.tipo == 'ALUNO' and equipe.scrum_master_id == usuario.id) %}
-                            {% if pode_editar %}<a href="/entregas/{{ e.id }}/editar" class="btn btn-outline-primary btn-sm py-0 px-2" style="border-radius:6px;font-size:.75rem;"><i class="bi bi-pencil"></i></a>{% endif %}
-                            {% if pode_excluir %}<form method="post" action="/entregas/{{ e.id }}/deletar" class="d-inline"><button type="submit" class="btn btn-outline-danger btn-sm py-0 px-2" style="border-radius:6px;font-size:.75rem;"><i class="bi bi-trash"></i></button></form>{% endif %}
+                            {# Editar: apenas o próprio autor da entrega #}
+                            {% set pode_editar = (usuario.tipo == 'ALUNO' and e.autor_id == usuario.id) %}
+                            {# Excluir: apenas o Scrum Master da equipe (aluno líder) #}
+                            {% set pode_excluir = (usuario.tipo == 'ALUNO' and equipe.scrum_master_id == usuario.id) %}
+                            {% if pode_editar %}<a href="/entregas/{{ e.id }}/editar" class="btn btn-outline-primary btn-sm py-0 px-2" style="border-radius:6px;font-size:.75rem;" title="Editar minha entrega"><i class="bi bi-pencil"></i></a>{% endif %}
+                            {% if pode_excluir %}<form method="post" action="/entregas/{{ e.id }}/deletar" class="d-inline"><button type="submit" class="btn btn-outline-danger btn-sm py-0 px-2" style="border-radius:6px;font-size:.75rem;" title="Excluir (Scrum Master)"><i class="bi bi-trash"></i></button></form>{% endif %}
                         </div>
                     </div>
                     {% if e.descricao %}<p class="small mb-2" style="color:#374151;">{{ e.descricao }}</p>{% endif %}

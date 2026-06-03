@@ -92,13 +92,18 @@
                 {% if usuario.tipo == 'ALUNO' %}
                 <a href="/tematicas" class="btn btn-primary text-start" style="border-radius:8px;"><i class="bi bi-lightbulb me-2"></i>Minhas temáticas</a>
                 <a href="/portfolio" class="btn btn-outline-primary text-start" style="border-radius:8px;"><i class="bi bi-grid-3x3-gap me-2"></i>Portfólio</a>
+                <a href="/meu-perfil" class="btn btn-outline-primary text-start" style="border-radius:8px;"><i class="bi bi-person-badge me-2"></i>Meu perfil</a>
                 {% elif usuario.tipo == 'PROFESSOR' %}
-                <a href="/tematicas" class="btn btn-primary text-start" style="border-radius:8px;"><i class="bi bi-lightbulb me-2"></i>Minhas temáticas</a>
+                <a href="/tematicas" class="btn btn-primary text-start" style="border-radius:8px;"><i class="bi bi-clipboard-check me-2"></i>Minhas temáticas</a>
                 <a href="/portfolio" class="btn btn-outline-primary text-start" style="border-radius:8px;"><i class="bi bi-grid-3x3-gap me-2"></i>Portfólio</a>
-                {% elif usuario.tipo in ('ADMIN','COORDENADOR') %}
+                {% elif usuario.tipo == 'COORDENADOR' %}
                 <a href="/turmas/nova" class="btn btn-primary text-start" style="border-radius:8px;"><i class="bi bi-building me-2"></i>Nova turma</a>
                 <a href="/tematicas/nova" class="btn btn-outline-primary text-start" style="border-radius:8px;"><i class="bi bi-lightbulb me-2"></i>Nova temática</a>
-                <a href="/usuarios/novo" class="btn btn-outline-primary text-start" style="border-radius:8px;"><i class="bi bi-person-plus me-2"></i>Novo usuário</a>
+                <a href="/relatorios" class="btn text-start" style="border-radius:8px;background:var(--senac-orange-light);color:var(--senac-orange);border:1px solid #fde68a;"><i class="bi bi-bar-chart-line me-2"></i>Relatórios</a>
+                {% elif usuario.tipo == 'ADMIN' %}
+                <a href="/usuarios/novo" class="btn btn-primary text-start" style="border-radius:8px;"><i class="bi bi-person-plus me-2"></i>Novo usuário</a>
+                <a href="/usuarios" class="btn btn-outline-primary text-start" style="border-radius:8px;"><i class="bi bi-people me-2"></i>Gerenciar usuários</a>
+                <a href="/tematicas" class="btn btn-outline-primary text-start" style="border-radius:8px;"><i class="bi bi-lightbulb me-2"></i>Temáticas</a>
                 <a href="/relatorios" class="btn text-start" style="border-radius:8px;background:var(--senac-orange-light);color:var(--senac-orange);border:1px solid #fde68a;"><i class="bi bi-bar-chart-line me-2"></i>Relatórios</a>
                 {% elif usuario.tipo == 'EMPRESA' %}
                 <a href="/portfolio" class="btn btn-primary text-start" style="border-radius:8px;"><i class="bi bi-grid-3x3-gap me-2"></i>Explorar portfólio</a>

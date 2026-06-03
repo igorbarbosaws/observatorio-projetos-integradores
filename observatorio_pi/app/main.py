@@ -139,13 +139,15 @@ def dashboard(request: Request, db: Session = Depends(get_db)):
     return templates.TemplateResponse("dashboard.html", ctx)
 
 
-# ── Usuários ──────────────────────────────────────────────────────────────────
+# ── Usuários (apenas ADMIN) ───────────────────────────────────────────────────
 
 @app.get("/usuarios", response_class=HTMLResponse)
 def listar_usuarios_view(request: Request, filtro_tipo: str = "", filtro_ativo: str = "", db: Session = Depends(get_db)):
     usuario = get_usuario_logado(request, db)
     if not usuario:
         return RedirectResponse(url="/", status_code=303)
+    if usuario.tipo != "ADMIN":
+        return RedirectResponse(url="/dashboard", status_code=303)
     query = db.query(User)
     if filtro_tipo:
         query = query.filter(User.tipo == filtro_tipo)
@@ -164,16 +166,16 @@ def listar_usuarios_view(request: Request, filtro_tipo: str = "", filtro_ativo: 
 @app.get("/usuarios/novo", response_class=HTMLResponse)
 def novo_usuario_view(request: Request, db: Session = Depends(get_db)):
     usuario = get_usuario_logado(request, db)
-    if not usuario:
-        return RedirectResponse(url="/", status_code=303)
+    if not usuario or usuario.tipo != "ADMIN":
+        return RedirectResponse(url="/dashboard", status_code=303)
     return templates.TemplateResponse("usuario_form.html", {"request": request, "usuario": usuario, "editando": None, "active_page": "usuarios"})
 
 
 @app.post("/usuarios/novo", response_class=HTMLResponse)
 def criar_usuario_view(request: Request, nome: str = Form(...), email: str = Form(...), senha: str = Form(...), tipo: str = Form(...), db: Session = Depends(get_db)):
     usuario = get_usuario_logado(request, db)
-    if not usuario:
-        return RedirectResponse(url="/", status_code=303)
+    if not usuario or usuario.tipo != "ADMIN":
+        return RedirectResponse(url="/dashboard", status_code=303)
     if db.query(User).filter(User.email == email.lower()).first():
         return templates.TemplateResponse("usuario_form.html", {"request": request, "usuario": usuario, "editando": None, "erro": "E-mail já está em uso", "form": {"nome": nome, "email": email, "tipo": tipo}, "active_page": "usuarios"})
     db.add(User(nome=nome, email=email.lower(), senha_hash=hash_senha(senha), tipo=tipo.upper(), ativo=True))
@@ -184,8 +186,8 @@ def criar_usuario_view(request: Request, nome: str = Form(...), email: str = For
 @app.get("/usuarios/{user_id}/editar", response_class=HTMLResponse)
 def editar_usuario_view(user_id: int, request: Request, db: Session = Depends(get_db)):
     usuario = get_usuario_logado(request, db)
-    if not usuario:
-        return RedirectResponse(url="/", status_code=303)
+    if not usuario or usuario.tipo != "ADMIN":
+        return RedirectResponse(url="/dashboard", status_code=303)
     editando = db.query(User).filter(User.id == user_id).first()
     if not editando:
         return RedirectResponse(url="/usuarios?erro=Usuário+não+encontrado", status_code=303)
@@ -195,8 +197,8 @@ def editar_usuario_view(user_id: int, request: Request, db: Session = Depends(ge
 @app.post("/usuarios/{user_id}/editar", response_class=HTMLResponse)
 def salvar_usuario_view(user_id: int, request: Request, nome: str = Form(...), email: str = Form(...), tipo: str = Form(...), ativo: str = Form("on"), senha: str = Form(""), db: Session = Depends(get_db)):
     usuario = get_usuario_logado(request, db)
-    if not usuario:
-        return RedirectResponse(url="/", status_code=303)
+    if not usuario or usuario.tipo != "ADMIN":
+        return RedirectResponse(url="/dashboard", status_code=303)
     editando = db.query(User).filter(User.id == user_id).first()
     if not editando:
         return RedirectResponse(url="/usuarios?erro=Usuário+não+encontrado", status_code=303)
@@ -215,8 +217,8 @@ def salvar_usuario_view(user_id: int, request: Request, nome: str = Form(...), e
 @app.post("/usuarios/{user_id}/deletar")
 def deletar_usuario_view(user_id: int, request: Request, db: Session = Depends(get_db)):
     usuario = get_usuario_logado(request, db)
-    if not usuario:
-        return RedirectResponse(url="/", status_code=303)
+    if not usuario or usuario.tipo != "ADMIN":
+        return RedirectResponse(url="/dashboard", status_code=303)
     alvo = db.query(User).filter(User.id == user_id).first()
     if alvo:
         db.delete(alvo); db.commit()
@@ -305,11 +307,33 @@ def listar_tematicas(request: Request, filtro_turma: str = "", db: Session = Dep
     usuario = get_usuario_logado(request, db)
     if not usuario:
         return RedirectResponse(url="/", status_code=303)
+
     query = db.query(Tematica)
-    if usuario.tipo == "PROFESSOR":
+
+    if usuario.tipo == "ALUNO":
+        # Aluno vê apenas as temáticas das equipes em que participa
+        equipes = _equipes_do_aluno(db, usuario.id)
+        tematica_ids = list(set(e.tematica_id for e in equipes))
+        if tematica_ids:
+            query = query.filter(Tematica.id.in_(tematica_ids))
+        else:
+            tematicas = []
+            turmas = []
+            return templates.TemplateResponse("tematicas.html", {
+                "request": request, "usuario": usuario, "tematicas": [],
+                "turmas": [], "filtro_turma": filtro_turma,
+                "sucesso": request.query_params.get("sucesso"),
+                "erro": request.query_params.get("erro"),
+                "active_page": "tematicas",
+            })
+    elif usuario.tipo == "PROFESSOR":
+        # Professor vê apenas suas temáticas
         query = query.filter(Tematica.professor_id == usuario.id)
+    # Admin/Coordenador/Empresa vê todas
+
     if filtro_turma:
         query = query.filter(Tematica.turma_id == int(filtro_turma))
+
     tematicas = query.order_by(Tematica.criado_em.desc()).all()
     turmas = db.query(Turma).filter(Turma.ativa == True).order_by(Turma.nome).all()
     return templates.TemplateResponse("tematicas.html", {
@@ -562,11 +586,16 @@ def nova_entrega_view(equipe_id: int, request: Request, db: Session = Depends(ge
     usuario = get_usuario_logado(request, db)
     if not usuario:
         return RedirectResponse(url="/", status_code=303)
+    # Apenas alunos membros da equipe podem criar entregas
+    if usuario.tipo != "ALUNO":
+        return RedirectResponse(url=f"/equipes/{equipe_id}?erro=Apenas+alunos+podem+subir+entregas", status_code=303)
     equipe = db.query(Equipe).filter(Equipe.id == equipe_id).first()
     if not equipe:
         return RedirectResponse(url="/dashboard", status_code=303)
-    if usuario.tipo == "ALUNO" and not _is_membro(db, usuario.id, equipe_id):
-        return RedirectResponse(url=f"/equipes/{equipe_id}?erro=Sem+permissão", status_code=303)
+    if equipe.status == "FINALIZADO":
+        return RedirectResponse(url=f"/equipes/{equipe_id}?erro=Projeto+já+finalizado", status_code=303)
+    if not _is_membro(db, usuario.id, equipe_id):
+        return RedirectResponse(url=f"/equipes/{equipe_id}?erro=Você+não+faz+parte+desta+equipe", status_code=303)
     return templates.TemplateResponse("entrega_form.html", {
         "request": request, "usuario": usuario, "equipe": equipe, "editando": None, "active_page": "tematicas"
     })
@@ -575,13 +604,13 @@ def nova_entrega_view(equipe_id: int, request: Request, db: Session = Depends(ge
 @app.post("/equipes/{equipe_id}/entregas/nova", response_class=HTMLResponse)
 def criar_entrega(equipe_id: int, request: Request, titulo: str = Form(...), descricao: str = Form(""), tecnologias: str = Form(""), link_repositorio: str = Form(""), db: Session = Depends(get_db)):
     usuario = get_usuario_logado(request, db)
-    if not usuario:
-        return RedirectResponse(url="/", status_code=303)
-    equipe = db.query(Equipe).filter(Equipe.id == equipe_id).first()
-    if not equipe:
+    if not usuario or usuario.tipo != "ALUNO":
         return RedirectResponse(url="/dashboard", status_code=303)
-    if usuario.tipo == "ALUNO" and not _is_membro(db, usuario.id, equipe_id):
-        return RedirectResponse(url=f"/equipes/{equipe_id}?erro=Sem+permissão", status_code=303)
+    equipe = db.query(Equipe).filter(Equipe.id == equipe_id).first()
+    if not equipe or equipe.status == "FINALIZADO":
+        return RedirectResponse(url=f"/equipes/{equipe_id}?erro=Projeto+já+finalizado", status_code=303)
+    if not _is_membro(db, usuario.id, equipe_id):
+        return RedirectResponse(url=f"/equipes/{equipe_id}?erro=Você+não+faz+parte+desta+equipe", status_code=303)
     db.add(EntregaProjeto(
         equipe_id=equipe_id, autor_id=usuario.id,
         titulo=titulo, descricao=descricao,
@@ -599,8 +628,9 @@ def editar_entrega_view(entrega_id: int, request: Request, db: Session = Depends
     entrega = db.query(EntregaProjeto).filter(EntregaProjeto.id == entrega_id).first()
     if not entrega:
         return RedirectResponse(url="/dashboard", status_code=303)
-    if usuario.tipo == "ALUNO" and entrega.autor_id != usuario.id:
-        return RedirectResponse(url=f"/equipes/{entrega.equipe_id}?erro=Sem+permissão", status_code=303)
+    # Apenas o próprio autor pode editar sua entrega
+    if usuario.tipo != "ALUNO" or entrega.autor_id != usuario.id:
+        return RedirectResponse(url=f"/equipes/{entrega.equipe_id}?erro=Apenas+o+autor+pode+editar+sua+entrega", status_code=303)
     return templates.TemplateResponse("entrega_form.html", {
         "request": request, "usuario": usuario, "equipe": entrega.equipe, "editando": entrega, "active_page": "tematicas"
     })
@@ -614,8 +644,9 @@ def salvar_entrega(entrega_id: int, request: Request, titulo: str = Form(...), d
     entrega = db.query(EntregaProjeto).filter(EntregaProjeto.id == entrega_id).first()
     if not entrega:
         return RedirectResponse(url="/dashboard", status_code=303)
-    if usuario.tipo == "ALUNO" and entrega.autor_id != usuario.id:
-        return RedirectResponse(url=f"/equipes/{entrega.equipe_id}?erro=Sem+permissão", status_code=303)
+    # Apenas o próprio autor pode editar
+    if usuario.tipo != "ALUNO" or entrega.autor_id != usuario.id:
+        return RedirectResponse(url=f"/equipes/{entrega.equipe_id}?erro=Apenas+o+autor+pode+editar+sua+entrega", status_code=303)
     entrega.titulo = titulo; entrega.descricao = descricao
     entrega.tecnologias = tecnologias; entrega.link_repositorio = link_repositorio
     entrega.versao += 1; entrega.atualizado_em = datetime.now(timezone.utc)
@@ -632,10 +663,8 @@ def deletar_entrega(entrega_id: int, request: Request, db: Session = Depends(get
     if not entrega:
         return RedirectResponse(url="/dashboard", status_code=303)
     equipe = entrega.equipe
-    # Apenas Scrum Master ou Professor/Admin pode excluir
-    pode = (usuario.tipo in ("PROFESSOR", "ADMIN", "COORDENADOR") or
-            (usuario.tipo == "ALUNO" and equipe.scrum_master_id == usuario.id))
-    if not pode:
+    # Apenas o Scrum Master pode excluir entregas
+    if usuario.tipo != "ALUNO" or equipe.scrum_master_id != usuario.id:
         return RedirectResponse(url=f"/equipes/{equipe.id}?erro=Apenas+o+Scrum+Master+pode+excluir+entregas", status_code=303)
     db.delete(entrega); db.commit()
     return RedirectResponse(url=f"/equipes/{equipe.id}?sucesso=Entrega+removida", status_code=303)
