@@ -3,7 +3,7 @@
 # Executado a partir de observatorio_pi/ (rootDir do Render)
 set -e
 
-# Cria tabelas e seed do admin
+# Cria tabelas e inicializa admin padrão
 python -c "
 import sys, os
 sys.path.insert(0, '.')
@@ -11,21 +11,31 @@ sys.path.insert(0, '.')
 from sqlalchemy import text
 from app.database import engine, Base, SessionLocal
 from app.models.user import User
-from app.models.project import Project
+from app.models.project import Turma, Tematica, Equipe, EquipeMembro, EntregaProjeto, Avaliacao
 from app.core.security import hash_senha
 
-# Cria tabelas
+# Cria todas as tabelas do novo modelo
 Base.metadata.create_all(bind=engine)
 
-# Migração: coluna 'ativo' para bancos antigos
+# Migração: colunas de perfil de aluno (bancos antigos)
 with engine.connect() as conn:
     cols = [row[1] for row in conn.execute(text('PRAGMA table_info(users)'))]
-    if 'ativo' not in cols:
-        conn.execute(text('ALTER TABLE users ADD COLUMN ativo BOOLEAN NOT NULL DEFAULT 1'))
-        conn.commit()
-        print('Coluna ativo adicionada.')
+    for col, sql in [
+        ('ativo',          'ALTER TABLE users ADD COLUMN ativo BOOLEAN NOT NULL DEFAULT 1'),
+        ('bio',            'ALTER TABLE users ADD COLUMN bio TEXT DEFAULT \"\"'),
+        ('linkedin',       'ALTER TABLE users ADD COLUMN linkedin VARCHAR DEFAULT \"\"'),
+        ('github',         'ALTER TABLE users ADD COLUMN github VARCHAR DEFAULT \"\"'),
+        ('portfolio_url',  'ALTER TABLE users ADD COLUMN portfolio_url VARCHAR DEFAULT \"\"'),
+        ('area_interesse', 'ALTER TABLE users ADD COLUMN area_interesse VARCHAR DEFAULT \"\"'),
+        ('cidade',         'ALTER TABLE users ADD COLUMN cidade VARCHAR DEFAULT \"\"'),
+        ('telefone',       'ALTER TABLE users ADD COLUMN telefone VARCHAR DEFAULT \"\"'),
+    ]:
+        if col not in cols:
+            conn.execute(text(sql))
+            conn.commit()
+            print(f'Coluna {col} adicionada.')
 
-# Admin padrão
+# Admin padrão (só cria se não existir nenhum usuário)
 db = SessionLocal()
 try:
     if db.query(User).count() == 0:
