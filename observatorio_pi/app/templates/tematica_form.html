@@ -1,0 +1,51 @@
+{% extends "base_auth.html" %}
+{% block title %}{% if editando %}Editar Temática{% else %}Nova Temática{% endif %} — Observatório PI{% endblock %}
+{% block content %}
+<div class="mb-4">
+    <nav aria-label="breadcrumb"><ol class="breadcrumb small"><li class="breadcrumb-item"><a href="/dashboard">Dashboard</a></li><li class="breadcrumb-item"><a href="/tematicas">Temáticas</a></li><li class="breadcrumb-item active">{% if editando %}Editar{% else %}Nova{% endif %}</li></ol></nav>
+    <div class="page-title"><i class="bi bi-lightbulb me-2" style="color:var(--senac-orange);"></i>{% if editando %}Editar temática{% else %}Nova temática{% endif %}</div>
+</div>
+<div class="card p-4" style="max-width:640px;overflow:hidden;">
+    <div style="height:4px;background:linear-gradient(90deg,var(--senac-blue),var(--senac-orange));border-radius:4px;margin:-1.5rem -1.5rem 1.5rem;"></div>
+    <form method="post" action="{% if editando %}/tematicas/{{ editando.id }}/editar{% else %}/tematicas/nova{% endif %}">
+        <div class="mb-3">
+            <label class="form-label fw-semibold" style="font-size:.85rem;color:#374151;">Título da temática <span class="text-danger">*</span></label>
+            <input type="text" name="titulo" class="form-control" placeholder="Ex.: Sistema de Gestão para Micro Empresas" maxlength="200" value="{{ editando.titulo if editando else '' }}" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label fw-semibold" style="font-size:.85rem;color:#374151;">Descrição</label>
+            <textarea name="descricao" class="form-control" rows="4" placeholder="Descreva o problema a ser resolvido, contexto e objetivos...">{{ editando.descricao if editando else '' }}</textarea>
+        </div>
+        <div class="row g-3 mb-3">
+            <div class="col-sm-6">
+                <label class="form-label fw-semibold" style="font-size:.85rem;color:#374151;">Turma <span class="text-danger">*</span></label>
+                <select name="turma_id" class="form-select" required>
+                    <option value="">Selecione a turma</option>
+                    {% for t in turmas %}<option value="{{ t.id }}" {% if editando and editando.turma_id == t.id %}selected{% endif %}>{{ t.nome }} — {{ t.semestre }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="col-sm-6">
+                <label class="form-label fw-semibold" style="font-size:.85rem;color:#374151;">Professor responsável</label>
+                <select name="professor_id" class="form-select">
+                    <option value="">Nenhum (a definir)</option>
+                    {% for p in professores %}<option value="{{ p.id }}" {% if editando and editando.professor_id == p.id %}selected{% endif %}>{{ p.nome }}</option>{% endfor %}
+                </select>
+            </div>
+        </div>
+        {% if editando %}
+        <div class="mb-4">
+            <label class="form-label fw-semibold" style="font-size:.85rem;color:#374151;">Status</label>
+            <select name="status" class="form-select">
+                {% for s, l in [('ABERTA','Aberta'),('EM_ANDAMENTO','Em andamento'),('CONCLUIDA','Concluída')] %}
+                <option value="{{ s }}" {% if editando.status == s %}selected{% endif %}>{{ l }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        {% endif %}
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary" style="border-radius:8px;"><i class="bi bi-check-lg me-1"></i>{% if editando %}Salvar{% else %}Criar temática{% endif %}</button>
+            <a href="/tematicas" class="btn btn-outline-secondary" style="border-radius:8px;">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

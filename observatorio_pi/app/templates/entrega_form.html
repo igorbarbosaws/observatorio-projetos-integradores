@@ -1,0 +1,38 @@
+{% extends "base_auth.html" %}
+{% block title %}{% if editando %}Editar Entrega{% else %}Nova Entrega{% endif %} — Observatório PI{% endblock %}
+{% block content %}
+<div class="mb-4">
+    <nav aria-label="breadcrumb"><ol class="breadcrumb small"><li class="breadcrumb-item"><a href="/dashboard">Dashboard</a></li><li class="breadcrumb-item"><a href="/tematicas">Temáticas</a></li>{% if equipe.tematica %}<li class="breadcrumb-item"><a href="/tematicas/{{ equipe.tematica.id }}">{{ equipe.tematica.titulo[:30] }}</a></li>{% endif %}<li class="breadcrumb-item"><a href="/equipes/{{ equipe.id }}">{{ equipe.nome }}</a></li><li class="breadcrumb-item active">{% if editando %}Editar{% else %}Nova entrega{% endif %}</li></ol></nav>
+    <div class="page-title"><i class="bi bi-file-earmark-plus me-2" style="color:var(--senac-blue);"></i>{% if editando %}Editar entrega{% else %}Nova entrega{% endif %}</div>
+    <div class="page-subtitle">Equipe: <strong>{{ equipe.nome }}</strong> · {{ equipe.tematica.titulo if equipe.tematica else '' }}</div>
+</div>
+<div class="card p-4" style="max-width:680px;overflow:hidden;">
+    <div style="height:4px;background:linear-gradient(90deg,var(--senac-blue),var(--senac-orange));border-radius:4px;margin:-1.5rem -1.5rem 1.5rem;"></div>
+    <form method="post" action="{% if editando %}/entregas/{{ editando.id }}/editar{% else %}/equipes/{{ equipe.id }}/entregas/nova{% endif %}">
+        <div class="mb-3">
+            <label class="form-label fw-semibold" style="font-size:.85rem;color:#374151;">Título <span class="text-danger">*</span></label>
+            <input type="text" name="titulo" class="form-control" placeholder="Ex.: Módulo de Autenticação" maxlength="200" value="{{ editando.titulo if editando else '' }}" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label fw-semibold" style="font-size:.85rem;color:#374151;">Descrição</label>
+            <textarea name="descricao" class="form-control" rows="4" placeholder="Descreva o que foi desenvolvido nesta entrega...">{{ editando.descricao if editando else '' }}</textarea>
+        </div>
+        <div class="mb-3">
+            <label class="form-label fw-semibold" style="font-size:.85rem;color:#374151;">Tecnologias utilizadas</label>
+            <input type="text" name="tecnologias" class="form-control" placeholder="Ex.: Python, FastAPI, Bootstrap" maxlength="300" value="{{ editando.tecnologias if editando else '' }}">
+            <div class="form-text">Separe por vírgula</div>
+        </div>
+        <div class="mb-4">
+            <label class="form-label fw-semibold" style="font-size:.85rem;color:#374151;">Link do repositório</label>
+            <div class="input-group">
+                <span class="input-group-text" style="background:#f8fafc;border-color:#e4eaf2;"><i class="bi bi-github" style="color:var(--senac-blue);"></i></span>
+                <input type="url" name="link_repositorio" class="form-control" placeholder="https://github.com/..." value="{{ editando.link_repositorio if editando else '' }}">
+            </div>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary" style="border-radius:8px;"><i class="bi bi-check-lg me-1"></i>{% if editando %}Salvar{% else %}Adicionar entrega{% endif %}</button>
+            <a href="/equipes/{{ equipe.id }}" class="btn btn-outline-secondary" style="border-radius:8px;">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

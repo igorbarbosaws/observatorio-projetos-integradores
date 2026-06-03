@@ -3,10 +3,10 @@
 venv/
 env/
 
-# Banco de dados local
-*.db
-*.sqlite
-*.sqlite3
+# Banco de dados local (descomentado para permitir commit do banco de demonstração)
+# *.db
+# *.sqlite
+# *.sqlite3
 
 # Bytecode Python
 __pycache__/

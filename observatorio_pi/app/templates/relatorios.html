@@ -1,240 +1,106 @@
 {% extends "base_auth.html" %}
 {% block title %}Relatórios — Observatório PI{% endblock %}
-
 {% block content %}
-<div class="d-flex justify-content-between align-items-start mb-4">
-    <div>
-        <div class="page-title">
-            <i class="bi bi-bar-chart-line me-2" style="color:var(--senac-blue);"></i>Relatórios
-        </div>
-        <div class="page-subtitle">Visão geral e estatísticas do Observatório PI</div>
-    </div>
-</div>
+<div class="page-title mb-1"><i class="bi bi-bar-chart-line me-2" style="color:var(--senac-blue);"></i>Relatórios</div>
+<div class="page-subtitle mb-4">Visão geral e estatísticas do Observatório PI</div>
 
-<!-- Cards de resumo -->
 <div class="row g-3 mb-4">
+    {% for icon, val, label, cor in [('bi-lightbulb', total_tematicas, 'Temáticas', 'orange'),('bi-people', total_equipes, 'Equipes', 'blue'),('bi-check2-circle', total_finalizadas, 'Finalizadas', 'green'),('bi-clipboard-check', total_avaliacoes, 'Avaliações', 'blue')] %}
     <div class="col-sm-6 col-xl-3">
         <div class="card p-3 h-100">
             <div class="d-flex align-items-center gap-3">
-                <div class="stat-card-icon blue"><i class="bi bi-folder2-open"></i></div>
-                <div>
-                    <div class="fs-2 fw-bold" style="color:#1a1a2e;line-height:1.1;">{{ total_projetos }}</div>
-                    <div class="page-subtitle">Total de projetos</div>
-                </div>
+                <div class="stat-card-icon {{ cor }}"><i class="bi {{ icon }}"></i></div>
+                <div><div class="fs-2 fw-bold" style="color:#1a1a2e;line-height:1.1;">{{ val }}</div><div class="page-subtitle">{{ label }}</div></div>
             </div>
         </div>
     </div>
-    <div class="col-sm-6 col-xl-3">
-        <div class="card p-3 h-100">
-            <div class="d-flex align-items-center gap-3">
-                <div class="stat-card-icon green"><i class="bi bi-patch-check"></i></div>
-                <div>
-                    <div class="fs-2 fw-bold" style="color:#1a1a2e;line-height:1.1;">{{ total_avaliados }}</div>
-                    <div class="page-subtitle">Projetos avaliados</div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-sm-6 col-xl-3">
-        <div class="card p-3 h-100">
-            <div class="d-flex align-items-center gap-3">
-                <div class="stat-card-icon orange"><i class="bi bi-hourglass-split"></i></div>
-                <div>
-                    <div class="fs-2 fw-bold" style="color:#1a1a2e;line-height:1.1;">{{ total_submetidos }}</div>
-                    <div class="page-subtitle">Aguardando avaliação</div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-sm-6 col-xl-3">
-        <div class="card p-3 h-100">
-            <div class="d-flex align-items-center gap-3">
-                <div class="stat-card-icon blue"><i class="bi bi-star-half"></i></div>
-                <div>
-                    <div class="fs-2 fw-bold" style="color:#1a1a2e;line-height:1.1;">{{ media_geral }}</div>
-                    <div class="page-subtitle">Média geral das notas</div>
-                </div>
-            </div>
-        </div>
-    </div>
+    {% endfor %}
 </div>
 
 <div class="row g-4">
-    <!-- Projetos por turma -->
+    <!-- Temáticas por turma -->
     <div class="col-lg-6">
         <div class="card p-4 h-100" style="overflow:hidden;">
             <div style="height:3px;background:linear-gradient(90deg,var(--senac-blue),var(--senac-orange));border-radius:3px;margin:-1.5rem -1.5rem 1.5rem;"></div>
-            <div class="fw-semibold mb-3" style="color:#1a1a2e;">
-                <i class="bi bi-people me-2" style="color:var(--senac-blue);"></i>Projetos por turma
-            </div>
+            <div class="fw-semibold mb-3" style="color:#1a1a2e;"><i class="bi bi-building me-2" style="color:var(--senac-blue);"></i>Temáticas por turma</div>
             {% if por_turma %}
-            {% set max_turma = por_turma[0][1] if por_turma else 1 %}
+            {% set max_t = por_turma[0][1] if por_turma else 1 %}
             <div class="d-flex flex-column gap-3">
-                {% for turma, total in por_turma %}
+                {% for nome_t, total in por_turma %}
                 <div>
-                    <div class="d-flex justify-content-between mb-1" style="font-size:.82rem;">
-                        <span class="fw-semibold" style="color:#374151;">{{ turma or '(sem turma)' }}</span>
-                        <span style="color:#6b7280;">{{ total }} projeto{{ 's' if total > 1 else '' }}</span>
-                    </div>
-                    <div class="progress" style="height:8px;background:#e4eaf2;border-radius:4px;">
-                        <div class="progress-bar" style="width:{{ (total/max_turma*100)|int }}%;background:var(--senac-blue);border-radius:4px;"></div>
-                    </div>
+                    <div class="d-flex justify-content-between mb-1" style="font-size:.82rem;"><span class="fw-semibold" style="color:#374151;">{{ nome_t or '(sem turma)' }}</span><span style="color:#6b7280;">{{ total }}</span></div>
+                    <div class="progress" style="height:8px;background:#e4eaf2;border-radius:4px;"><div class="progress-bar" style="width:{{ (total/max_t*100)|int }}%;background:var(--senac-blue);border-radius:4px;"></div></div>
                 </div>
                 {% endfor %}
             </div>
-            {% else %}
-            <div class="text-center py-4" style="color:#9aa5b4;">
-                <i class="bi bi-bar-chart fs-3 d-block mb-2"></i>Sem dados disponíveis
-            </div>
-            {% endif %}
+            {% else %}<div class="text-center py-4" style="color:#9aa5b4;"><i class="bi bi-bar-chart fs-3 d-block mb-2"></i>Sem dados</div>{% endif %}
         </div>
     </div>
 
-    <!-- Projetos por semestre -->
+    <!-- Distribuição por conceito -->
     <div class="col-lg-6">
         <div class="card p-4 h-100" style="overflow:hidden;">
             <div style="height:3px;background:linear-gradient(90deg,var(--senac-orange),var(--senac-blue));border-radius:3px;margin:-1.5rem -1.5rem 1.5rem;"></div>
-            <div class="fw-semibold mb-3" style="color:#1a1a2e;">
-                <i class="bi bi-calendar3 me-2" style="color:var(--senac-orange);"></i>Projetos por semestre
-            </div>
-            {% if por_semestre %}
-            {% set max_sem = por_semestre | map(attribute=1) | max %}
+            <div class="fw-semibold mb-3" style="color:#1a1a2e;"><i class="bi bi-award me-2" style="color:var(--senac-orange);"></i>Avaliações por conceito</div>
+            {% set cores_c = {'INSUFICIENTE': ('#fef2f2','#991b1b','#fecaca'), 'REGULAR': ('#fff7ed','#c2410c','#fed7aa'), 'BOM': ('#fffbeb','#92400e','#fde68a'), 'OTIMO': ('#eff6ff','#1e40af','#bfdbfe'), 'EXCELENTE': ('#ecfdf5','#065f46','#a7f3d0')} %}
+            {% set total_av = por_conceito.values()|sum %}
             <div class="d-flex flex-column gap-3">
-                {% for semestre, total in por_semestre %}
+                {% for c in conceitos %}
+                {% set qtd = por_conceito[c] %}
                 <div>
-                    <div class="d-flex justify-content-between mb-1" style="font-size:.82rem;">
-                        <span class="fw-semibold" style="color:#374151;">{{ semestre or '(sem semestre)' }}</span>
-                        <span style="color:#6b7280;">{{ total }} projeto{{ 's' if total > 1 else '' }}</span>
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        {% set bg, fg, bd = cores_c[c] %}
+                        <span class="badge px-2 py-1" style="background:{{ bg }};color:{{ fg }};border:1px solid {{ bd }};font-size:.75rem;">{{ conceito_label[c] }}</span>
+                        <span style="font-size:.82rem;color:#6b7280;">{{ qtd }} avaliação{{ 'ões' if qtd != 1 else '' }}</span>
                     </div>
-                    <div class="progress" style="height:8px;background:#e4eaf2;border-radius:4px;">
-                        <div class="progress-bar" style="width:{{ (total/max_sem*100)|int }}%;background:var(--senac-orange);border-radius:4px;"></div>
-                    </div>
+                    <div class="progress" style="height:8px;background:#e4eaf2;border-radius:4px;"><div class="progress-bar" style="width:{{ ((qtd/total_av*100)|int) if total_av > 0 else 0 }}%;background:{{ fg }};border-radius:4px;"></div></div>
                 </div>
                 {% endfor %}
             </div>
-            {% else %}
-            <div class="text-center py-4" style="color:#9aa5b4;">
-                <i class="bi bi-calendar fs-3 d-block mb-2"></i>Sem dados disponíveis
-            </div>
-            {% endif %}
-        </div>
-    </div>
-
-    <!-- Top alunos -->
-    <div class="col-lg-6">
-        <div class="card p-4 h-100">
-            <div class="fw-semibold mb-3" style="color:#1a1a2e;">
-                <i class="bi bi-trophy me-2" style="color:var(--senac-orange);"></i>Alunos mais ativos
-            </div>
-            {% if top_alunos %}
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead>
-                        <tr>
-                            <th class="ps-0">#</th>
-                            <th>Aluno</th>
-                            <th class="text-end pe-0">Projetos</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for nome, total in top_alunos %}
-                        <tr>
-                            <td class="ps-0">
-                                {% if loop.index == 1 %}
-                                <span style="color:var(--senac-orange);font-weight:700;">🥇</span>
-                                {% elif loop.index == 2 %}
-                                <span style="color:#9aa5b4;font-weight:700;">🥈</span>
-                                {% elif loop.index == 3 %}
-                                <span style="color:#cd7f32;font-weight:700;">🥉</span>
-                                {% else %}
-                                <span class="text-muted small">{{ loop.index }}</span>
-                                {% endif %}
-                            </td>
-                            <td class="fw-semibold" style="color:#1a1a2e;">{{ nome }}</td>
-                            <td class="text-end pe-0">
-                                <span class="badge" style="background:#eff6ff;color:var(--senac-blue);border:1px solid #bfdbfe;">{{ total }}</span>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-            <div class="text-center py-4" style="color:#9aa5b4;">
-                <i class="bi bi-person fs-3 d-block mb-2"></i>Sem dados disponíveis
-            </div>
-            {% endif %}
         </div>
     </div>
 
     <!-- Top professores -->
     <div class="col-lg-6">
         <div class="card p-4 h-100">
-            <div class="fw-semibold mb-3" style="color:#1a1a2e;">
-                <i class="bi bi-clipboard-check me-2" style="color:#16a34a;"></i>Professores mais ativos
-            </div>
+            <div class="fw-semibold mb-3" style="color:#1a1a2e;"><i class="bi bi-clipboard-check me-2" style="color:#16a34a;"></i>Professores mais ativos</div>
             {% if top_professores %}
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead>
-                        <tr>
-                            <th class="ps-0">#</th>
-                            <th>Professor</th>
-                            <th class="text-end pe-0">Avaliações</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for nome, total in top_professores %}
-                        <tr>
-                            <td class="ps-0 text-muted small">{{ loop.index }}</td>
-                            <td class="fw-semibold" style="color:#1a1a2e;">{{ nome }}</td>
-                            <td class="text-end pe-0">
-                                <span class="badge" style="background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0;">{{ total }}</span>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-            <div class="text-center py-4" style="color:#9aa5b4;">
-                <i class="bi bi-clipboard fs-3 d-block mb-2"></i>Sem dados disponíveis
-            </div>
-            {% endif %}
+            <table class="table table-hover align-middle mb-0">
+                <thead><tr><th class="ps-0">#</th><th>Professor</th><th class="text-end pe-0">Avaliações</th></tr></thead>
+                <tbody>
+                    {% for nome_p, total in top_professores %}
+                    <tr>
+                        <td class="ps-0">{% if loop.index==1 %}🥇{% elif loop.index==2 %}🥈{% elif loop.index==3 %}🥉{% else %}<span class="text-muted small">{{ loop.index }}</span>{% endif %}</td>
+                        <td class="fw-semibold" style="color:#1a1a2e;">{{ nome_p }}</td>
+                        <td class="text-end pe-0"><span class="badge" style="background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0;">{{ total }}</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}<div class="text-center py-4" style="color:#9aa5b4;"><i class="bi bi-clipboard fs-3 d-block mb-2"></i>Sem dados</div>{% endif %}
         </div>
     </div>
 
-    <!-- Distribuição por status -->
-    <div class="col-12">
-        <div class="card p-4" style="overflow:hidden;">
-            <div style="height:3px;background:linear-gradient(90deg,var(--senac-blue),var(--senac-orange),#16a34a);border-radius:3px;margin:-1.5rem -1.5rem 1.5rem;"></div>
-            <div class="fw-semibold mb-3" style="color:#1a1a2e;">
-                <i class="bi bi-pie-chart me-2" style="color:var(--senac-blue);"></i>Distribuição por status
-            </div>
-            {% if total_projetos > 0 %}
-            <div class="row g-3">
-                {% for label, qtd, cor, bg in [
-                    ('Submetidos',   total_submetidos,   'var(--senac-blue)',  '#eff6ff'),
-                    ('Em avaliação', total_em_avaliacao, 'var(--senac-orange)','var(--senac-orange-light)'),
-                    ('Avaliados',    total_avaliados,    '#16a34a',            '#ecfdf5'),
-                ] %}
-                <div class="col-sm-4">
-                    <div class="rounded-3 p-3 mb-2" style="background:{{ bg }};">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span class="fw-semibold" style="font-size:.85rem;color:#374151;">{{ label }}</span>
-                            <span class="fw-bold" style="color:{{ cor }};font-size:1.1rem;">{{ qtd }}</span>
-                        </div>
-                        <div class="progress" style="height:6px;background:rgba(0,0,0,.08);border-radius:3px;">
-                            <div class="progress-bar" style="width:{{ ((qtd/total_projetos)*100)|int }}%;background:{{ cor }};border-radius:3px;"></div>
-                        </div>
-                        <div class="mt-1" style="font-size:.72rem;color:#6b7280;">{{ ((qtd/total_projetos)*100)|int }}% do total</div>
-                    </div>
+    <!-- Resumo status equipes -->
+    <div class="col-lg-6">
+        <div class="card p-4 h-100" style="overflow:hidden;">
+            <div style="height:3px;background:linear-gradient(90deg,var(--senac-blue),#16a34a,var(--senac-orange));border-radius:3px;margin:-1.5rem -1.5rem 1.5rem;"></div>
+            <div class="fw-semibold mb-3" style="color:#1a1a2e;"><i class="bi bi-pie-chart me-2" style="color:var(--senac-blue);"></i>Status das equipes</div>
+            {% if total_equipes > 0 %}
+            {% set em_andamento = total_equipes - total_finalizadas %}
+            {% for label_s, qtd_s, cor_s, bg_s in [('Em andamento', em_andamento, 'var(--senac-blue)', '#eff6ff'), ('Finalizadas', total_finalizadas, '#16a34a', '#ecfdf5')] %}
+            <div class="rounded-3 p-3 mb-3" style="background:{{ bg_s }};">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="fw-semibold" style="font-size:.85rem;color:#374151;">{{ label_s }}</span>
+                    <span class="fw-bold" style="color:{{ cor_s }};font-size:1.1rem;">{{ qtd_s }}</span>
                 </div>
-                {% endfor %}
+                <div class="progress" style="height:6px;background:rgba(0,0,0,.08);border-radius:3px;">
+                    <div class="progress-bar" style="width:{{ ((qtd_s/total_equipes)*100)|int }}%;background:{{ cor_s }};border-radius:3px;"></div>
+                </div>
+                <div class="mt-1" style="font-size:.72rem;color:#6b7280;">{{ ((qtd_s/total_equipes)*100)|int }}% do total</div>
             </div>
-            {% else %}
-            <div class="text-center py-3" style="color:#9aa5b4;">Nenhum projeto cadastrado ainda.</div>
-            {% endif %}
+            {% endfor %}
+            {% else %}<div class="text-center py-3" style="color:#9aa5b4;">Nenhuma equipe cadastrada ainda.</div>{% endif %}
         </div>
     </div>
 </div>

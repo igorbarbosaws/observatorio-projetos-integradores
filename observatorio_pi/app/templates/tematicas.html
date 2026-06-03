@@ -1,0 +1,66 @@
+{% extends "base_auth.html" %}
+{% block title %}Temáticas — Observatório PI{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div><div class="page-title"><i class="bi bi-lightbulb me-2" style="color:var(--senac-orange);"></i>Temáticas</div>
+    <div class="page-subtitle">{% if usuario.tipo == 'ALUNO' %}Temáticas em que você participa{% else %}Temáticas de projetos integradores{% endif %}</div></div>
+    {% if usuario.tipo in ('ADMIN','COORDENADOR') %}<a href="/tematicas/nova" class="btn btn-primary" style="border-radius:8px;"><i class="bi bi-plus-circle me-2"></i>Nova temática</a>{% endif %}
+</div>
+
+{% if sucesso %}<div class="alert alert-success alert-dismissible d-flex align-items-center gap-2 py-2 mb-4"><i class="bi bi-check-circle-fill flex-shrink-0"></i><span>{{ sucesso }}</span><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>{% endif %}
+{% if erro %}<div class="alert alert-danger alert-dismissible d-flex align-items-center gap-2 py-2 mb-4"><i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i><span>{{ erro }}</span><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>{% endif %}
+
+<!-- Filtro por turma -->
+{% if turmas %}
+<div class="card p-3 mb-4">
+    <form method="get" action="/tematicas" class="row g-2 align-items-end">
+        <div class="col-sm-4">
+            <label class="form-label fw-semibold mb-1" style="font-size:.82rem;color:#374151;">Filtrar por turma</label>
+            <select name="filtro_turma" class="form-select form-select-sm">
+                <option value="">Todas as turmas</option>
+                {% for t in turmas %}<option value="{{ t.id }}" {% if filtro_turma == t.id|string %}selected{% endif %}>{{ t.nome }} — {{ t.semestre }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="col-sm-3 d-flex gap-2">
+            <button type="submit" class="btn btn-primary btn-sm" style="border-radius:8px;"><i class="bi bi-funnel me-1"></i>Filtrar</button>
+            <a href="/tematicas" class="btn btn-outline-secondary btn-sm" style="border-radius:8px;">Limpar</a>
+        </div>
+    </form>
+</div>
+{% endif %}
+
+{% if tematicas %}
+<div class="row g-3">
+    {% for t in tematicas %}
+    <div class="col-md-6 col-xl-4">
+        <div class="card h-100" style="overflow:hidden;cursor:pointer;transition:box-shadow .15s,transform .15s;" onclick="window.location='/tematicas/{{ t.id }}'"
+             onmouseover="this.style.boxShadow='0 6px 20px rgba(13,94,165,.14)';this.style.transform='translateY(-2px)'"
+             onmouseout="this.style.boxShadow='';this.style.transform=''">
+            <div style="height:4px;background:{% if t.status=='CONCLUIDA' %}linear-gradient(90deg,var(--senac-blue),#16a34a){% elif t.status=='EM_ANDAMENTO' %}linear-gradient(90deg,var(--senac-blue),var(--senac-orange)){% else %}#e4eaf2{% endif %};"></div>
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h6 class="fw-bold mb-0 lh-sm flex-grow-1 me-2" style="color:#1a1a2e;">{{ t.titulo }}</h6>
+                    {% if t.status == 'CONCLUIDA' %}
+                    <span class="badge flex-shrink-0" style="background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0;font-size:.7rem;">Concluída</span>
+                    {% elif t.status == 'EM_ANDAMENTO' %}
+                    <span class="badge flex-shrink-0" style="background:#fffbeb;color:#92400e;border:1px solid #fde68a;font-size:.7rem;">Em andamento</span>
+                    {% else %}
+                    <span class="badge flex-shrink-0" style="background:#eff6ff;color:var(--senac-blue);border:1px solid #bfdbfe;font-size:.7rem;">Aberta</span>
+                    {% endif %}
+                </div>
+                {% if t.descricao %}<p class="small mb-3" style="color:#6b7280;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">{{ t.descricao }}</p>{% endif %}
+                <div class="d-flex flex-wrap gap-2 mt-auto pt-2 border-top">
+                    {% if t.turma %}<span class="badge" style="background:#eff6ff;color:var(--senac-blue);border:1px solid #bfdbfe;font-size:.68rem;"><i class="bi bi-building me-1"></i>{{ t.turma.nome }}</span>{% endif %}
+                    {% if t.professor %}<span class="badge" style="background:#f8fafc;color:#374151;border:1px solid #e4eaf2;font-size:.68rem;"><i class="bi bi-person-badge me-1"></i>{{ t.professor.nome }}</span>{% endif %}
+                    <span class="badge ms-auto" style="background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;font-size:.68rem;"><i class="bi bi-people me-1"></i>{{ t.equipes|length }} equipe{{ 's' if t.equipes|length != 1 else '' }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="card"><div class="text-center py-5" style="color:#9aa5b4;"><i class="bi bi-lightbulb fs-2 d-block mb-2"></i>Nenhuma temática encontrada.
+{% if usuario.tipo in ('ADMIN','COORDENADOR') %}<div class="mt-3"><a href="/tematicas/nova" class="btn btn-primary" style="border-radius:8px;"><i class="bi bi-plus-circle me-2"></i>Criar primeira temática</a></div>{% endif %}</div></div>
+{% endif %}
+{% endblock %}

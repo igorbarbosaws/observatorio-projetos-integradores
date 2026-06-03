@@ -1,179 +1,95 @@
 {% extends "base_auth.html" %}
 {% block title %}Portfólio — Observatório PI{% endblock %}
-
 {% block content %}
-<!-- Hero do portfólio -->
-<div class="rounded-3 p-4 mb-4"
-     style="background:linear-gradient(135deg,var(--senac-blue-dark) 0%,var(--senac-blue) 100%);color:#fff;">
+<div class="rounded-3 p-4 mb-4" style="background:linear-gradient(135deg,var(--senac-blue-dark) 0%,var(--senac-blue) 100%);color:#fff;">
     <div class="row align-items-center">
         <div class="col">
-            <div class="fw-bold mb-1" style="font-size:1.3rem;">
-                <i class="bi bi-grid-3x3-gap me-2" style="color:var(--senac-orange);"></i>Portfólio de Projetos
-            </div>
-            <div style="opacity:.8;font-size:.88rem;">
-                Explore os projetos desenvolvidos pelos alunos do curso de ADS — SENAC Pernambuco
-            </div>
+            <div class="fw-bold mb-1" style="font-size:1.3rem;"><i class="bi bi-grid-3x3-gap me-2" style="color:var(--senac-orange);"></i>Portfólio de Projetos</div>
+            <div style="opacity:.8;font-size:.88rem;">Explore os projetos desenvolvidos pelos alunos do curso de ADS — SENAC Pernambuco</div>
         </div>
-        <div class="col-auto d-none d-md-block">
-            <div class="d-flex gap-3 text-center">
-                <div>
-                    <div class="fw-bold fs-4">{{ projetos | length }}</div>
-                    <div style="font-size:.72rem;opacity:.75;">projetos</div>
-                </div>
-            </div>
+        <div class="col-auto d-none d-md-block text-center">
+            <div class="fw-bold fs-4">{{ equipes|length }}</div>
+            <div style="font-size:.72rem;opacity:.75;">equipes</div>
         </div>
     </div>
 </div>
 
-<!-- Filtros -->
 <div class="card p-3 mb-4">
     <form method="get" action="/portfolio" class="row g-2 align-items-end">
         <div class="col-sm-4">
             <label class="form-label fw-semibold mb-1" style="font-size:.82rem;color:#374151;">Buscar</label>
             <div class="input-group input-group-sm">
-                <span class="input-group-text" style="background:#f8fafc;border-color:#e4eaf2;">
-                    <i class="bi bi-search" style="color:var(--senac-blue);"></i>
-                </span>
-                <input type="text" name="busca" class="form-control"
-                       placeholder="Título, descrição ou tecnologia..."
-                       value="{{ busca }}">
+                <span class="input-group-text" style="background:#f8fafc;border-color:#e4eaf2;"><i class="bi bi-search" style="color:var(--senac-blue);"></i></span>
+                <input type="text" name="busca" class="form-control" placeholder="Temática ou equipe..." value="{{ busca }}">
             </div>
         </div>
         <div class="col-sm-3">
             <label class="form-label fw-semibold mb-1" style="font-size:.82rem;color:#374151;">Turma</label>
             <select name="filtro_turma" class="form-select form-select-sm">
-                <option value="">Todas as turmas</option>
-                {% for t in turmas %}
-                <option value="{{ t }}" {% if filtro_turma == t %}selected{% endif %}>{{ t }}</option>
-                {% endfor %}
+                <option value="">Todas</option>
+                {% for t in turmas %}<option value="{{ t.id }}" {% if filtro_turma == t.id|string %}selected{% endif %}>{{ t.nome }}</option>{% endfor %}
             </select>
         </div>
         <div class="col-sm-3">
             <label class="form-label fw-semibold mb-1" style="font-size:.82rem;color:#374151;">Semestre</label>
             <select name="filtro_semestre" class="form-select form-select-sm">
-                <option value="">Todos os semestres</option>
-                {% for s in semestres %}
-                <option value="{{ s }}" {% if filtro_semestre == s %}selected{% endif %}>{{ s }}</option>
-                {% endfor %}
+                <option value="">Todos</option>
+                {% for s in semestres %}<option value="{{ s }}" {% if filtro_semestre == s %}selected{% endif %}>{{ s }}</option>{% endfor %}
             </select>
         </div>
         <div class="col-sm-2 d-flex gap-2">
-            <button type="submit" class="btn btn-primary btn-sm w-100" style="border-radius:8px;">
-                <i class="bi bi-search me-1"></i>Buscar
-            </button>
+            <button type="submit" class="btn btn-primary btn-sm w-100" style="border-radius:8px;"><i class="bi bi-search me-1"></i>Buscar</button>
         </div>
-        {% if busca or filtro_turma or filtro_semestre %}
-        <div class="col-12">
-            <a href="/portfolio" class="btn btn-outline-secondary btn-sm" style="border-radius:8px;">
-                <i class="bi bi-x-circle me-1"></i>Limpar filtros
-            </a>
-        </div>
-        {% endif %}
+        {% if busca or filtro_turma or filtro_semestre %}<div class="col-12"><a href="/portfolio" class="btn btn-outline-secondary btn-sm" style="border-radius:8px;"><i class="bi bi-x-circle me-1"></i>Limpar</a></div>{% endif %}
     </form>
 </div>
 
-{% if projetos %}
-<div class="mb-3" style="font-size:.78rem;color:#9aa5b4;">
-    <i class="bi bi-grid me-1"></i>{{ projetos | length }} projeto(s) encontrado(s)
-</div>
-
+{% if equipes %}
 <div class="row g-4">
-    {% for p in projetos %}
+    {% for eq in equipes %}
     <div class="col-md-6 col-xl-4">
-        <div class="card h-100 portfolio-card" style="overflow:hidden;">
-            <!-- Faixa de cor no topo -->
-            <div style="height:4px;background:{% if p.status == 'AVALIADO' %}linear-gradient(90deg,var(--senac-blue),#16a34a){% else %}linear-gradient(90deg,var(--senac-blue),var(--senac-orange)){% endif %};"></div>
-
+        <div class="card h-100" style="overflow:hidden;transition:box-shadow .15s,transform .15s;"
+             onmouseover="this.style.boxShadow='0 8px 24px rgba(13,94,165,.16)';this.style.transform='translateY(-3px)'"
+             onmouseout="this.style.boxShadow='';this.style.transform=''">
+            <div style="height:4px;background:{% if eq.status=='FINALIZADO' %}linear-gradient(90deg,var(--senac-blue),#16a34a){% else %}linear-gradient(90deg,var(--senac-blue),var(--senac-orange)){% endif %};"></div>
             <div class="card-body p-4">
-                <div class="d-flex justify-content-between align-items-start mb-3">
-                    <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
-                         style="width:40px;height:40px;background:#eff6ff;">
-                        <i class="bi bi-folder2-open" style="color:var(--senac-blue);font-size:1.1rem;"></i>
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <div class="fw-bold mb-1" style="color:#1a1a2e;">{{ eq.nome }}</div>
+                        {% if eq.tematica %}<div class="small" style="color:#6b7280;"><i class="bi bi-lightbulb me-1" style="color:var(--senac-orange);"></i>{{ eq.tematica.titulo[:50] }}</div>{% endif %}
                     </div>
-                    {% if p.status == 'AVALIADO' %}
-                    <span class="badge" style="background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0;font-size:.7rem;">
-                        <i class="bi bi-patch-check me-1"></i>Avaliado
-                    </span>
-                    {% else %}
-                    <span class="badge" style="background:#eff6ff;color:var(--senac-blue);border:1px solid #bfdbfe;font-size:.7rem;">
-                        <i class="bi bi-send me-1"></i>Submetido
-                    </span>
-                    {% endif %}
+                    {% if eq.status == 'FINALIZADO' %}<span class="badge ms-2 flex-shrink-0" style="background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0;font-size:.7rem;"><i class="bi bi-check2-circle me-1"></i>Finalizado</span>{% endif %}
                 </div>
-
-                <h6 class="fw-bold mb-1 lh-sm" style="color:#1a1a2e;">{{ p.titulo }}</h6>
-                {% if p.aluno %}
-                <div class="small mb-3" style="color:#9aa5b4;">
-                    <i class="bi bi-person me-1"></i>{{ p.aluno.nome }}
+                {% if eq.scrum_master %}<div class="small mb-3" style="color:#9aa5b4;"><i class="bi bi-star-fill me-1" style="color:var(--senac-orange);font-size:.7rem;"></i>SM: <a href="/alunos/{{ eq.scrum_master.id }}" class="fw-semibold text-decoration-none" style="color:#374151;" onclick="event.stopPropagation()">{{ eq.scrum_master.nome }}</a></div>{% endif %}
+                <!-- Entregas resumo -->
+                {% if eq.entregas %}
+                <div class="mb-3">
+                    {% set tags_todas = [] %}
+                    {% for e in eq.entregas %}{% for tag in e.tecnologias.split(',') %}{% set tag=tag.strip() %}{% if tag and tag not in tags_todas %}{% set _ = tags_todas.append(tag) %}{% endif %}{% endfor %}{% endfor %}
+                    {% if tags_todas %}<div class="d-flex flex-wrap gap-1">{% for tag in tags_todas[:6] %}<span class="badge" style="background:#f8fafc;color:#374151;border:1px solid #e4eaf2;font-size:.68rem;">{{ tag }}</span>{% endfor %}</div>{% endif %}
                 </div>
                 {% endif %}
-
-                {% if p.descricao %}
-                <p class="small mb-3" style="color:#6b7280;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;">
-                    {{ p.descricao }}
-                </p>
-                {% endif %}
-
-                {% if p.tecnologias %}
-                <div class="d-flex flex-wrap gap-1 mb-3">
-                    {% for tag in p.tecnologias.split(',') %}
-                    {% set tag = tag.strip() %}
-                    {% if tag %}
-                    <span class="badge" style="background:#f8fafc;color:#374151;border:1px solid #e4eaf2;font-size:.68rem;">{{ tag }}</span>
-                    {% endif %}
-                    {% endfor %}
-                </div>
-                {% endif %}
-
-                <!-- Nota média -->
-                {% if p.avaliacoes %}
-                {% set soma_notas = namespace(v=0) %}
-                {% for av in p.avaliacoes %}{% set soma_notas.v = soma_notas.v + av.nota_final %}{% endfor %}
-                {% set media_p = soma_notas.v / p.avaliacoes|length %}
-                <div class="d-flex align-items-center gap-2 mb-3 p-2 rounded-2" style="background:#eff6ff;">
-                    <i class="bi bi-star-fill" style="color:var(--senac-orange);font-size:.85rem;"></i>
-                    <span class="fw-bold" style="color:var(--senac-blue);">{{ "%.1f"|format(media_p) }}</span>
-                    <span style="font-size:.72rem;color:#6b7280;">/ 10 · {{ p.avaliacoes|length }} avaliação{{ 'ões' if p.avaliacoes|length > 1 else '' }}</span>
+                <!-- Conceito se avaliado -->
+                {% if eq.avaliacoes %}
+                {% set av = eq.avaliacoes[0] %}
+                <div class="d-flex align-items-center gap-2 p-2 rounded-2 mb-2" style="background:#ecfdf5;">
+                    <i class="bi bi-award-fill" style="color:#16a34a;"></i>
+                    <span class="fw-bold" style="color:#065f46;">{{ conceito_label[av.conceito_final] }}</span>
+                    <span style="font-size:.72rem;color:#6b7280;">· {{ av.professor.nome }}</span>
                 </div>
                 {% endif %}
             </div>
-
-            <div class="card-footer bg-transparent border-top px-4 py-3">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div class="d-flex gap-1">
-                        {% if p.turma %}
-                        <span class="badge" style="background:#eff6ff;color:var(--senac-blue);border:1px solid #bfdbfe;font-size:.68rem;">{{ p.turma }}</span>
-                        {% endif %}
-                        {% if p.semestre %}
-                        <span class="badge" style="background:#f8fafc;color:#6b7280;border:1px solid #e4eaf2;font-size:.68rem;">{{ p.semestre }}</span>
-                        {% endif %}
-                    </div>
-                    <a href="/projetos/{{ p.id }}" class="btn btn-primary btn-sm" style="border-radius:8px;font-size:.78rem;">
-                        Ver detalhes <i class="bi bi-arrow-right ms-1"></i>
-                    </a>
+            <div class="card-footer bg-transparent border-top px-4 py-3 d-flex justify-content-between align-items-center">
+                <div class="d-flex gap-2">
+                    {% if eq.tematica and eq.tematica.turma %}<span class="badge" style="background:#eff6ff;color:var(--senac-blue);border:1px solid #bfdbfe;font-size:.68rem;">{{ eq.tematica.turma.nome }}</span><span class="badge" style="background:#f8fafc;color:#6b7280;border:1px solid #e4eaf2;font-size:.68rem;">{{ eq.tematica.turma.semestre }}</span>{% endif %}
                 </div>
+                <a href="/equipes/{{ eq.id }}" class="btn btn-primary btn-sm" style="border-radius:8px;font-size:.78rem;">Ver detalhes <i class="bi bi-arrow-right ms-1"></i></a>
             </div>
         </div>
     </div>
     {% endfor %}
 </div>
-
 {% else %}
-<div class="card">
-    <div class="text-center py-5" style="color:#9aa5b4;">
-        <i class="bi bi-search fs-2 d-block mb-2"></i>
-        Nenhum projeto encontrado com os filtros aplicados.
-        <div class="mt-3">
-            <a href="/portfolio" class="btn btn-outline-primary btn-sm" style="border-radius:8px;">Ver todos os projetos</a>
-        </div>
-    </div>
-</div>
+<div class="card"><div class="text-center py-5" style="color:#9aa5b4;"><i class="bi bi-search fs-2 d-block mb-2"></i>Nenhum projeto encontrado.<div class="mt-3"><a href="/portfolio" class="btn btn-outline-primary btn-sm" style="border-radius:8px;">Ver todos</a></div></div></div>
 {% endif %}
-{% endblock %}
-
-{% block scripts %}
-<style>
-    .portfolio-card { transition: box-shadow .15s, transform .15s; }
-    .portfolio-card:hover { box-shadow: 0 8px 24px rgba(13,94,165,.16); transform: translateY(-3px); }
-</style>
 {% endblock %}

@@ -1,0 +1,130 @@
+{% extends "base_auth.html" %}
+{% block title %}{{ tematica.titulo }} — Observatório PI{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb small">
+        <li class="breadcrumb-item"><a href="/dashboard">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="/tematicas">Temáticas</a></li>
+        <li class="breadcrumb-item active text-truncate" style="max-width:200px;">{{ tematica.titulo }}</li>
+    </ol>
+</nav>
+
+{% if sucesso %}<div class="alert alert-success alert-dismissible d-flex align-items-center gap-2 py-2 mb-3"><i class="bi bi-check-circle-fill flex-shrink-0"></i><span>{{ sucesso }}</span><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>{% endif %}
+{% if erro %}<div class="alert alert-danger alert-dismissible d-flex align-items-center gap-2 py-2 mb-3"><i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i><span>{{ erro }}</span><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>{% endif %}
+
+<div class="row g-4">
+    <!-- Info da temática -->
+    <div class="col-lg-4">
+        <div class="card mb-3" style="overflow:hidden;">
+            <div style="height:5px;background:linear-gradient(90deg,var(--senac-blue),var(--senac-orange));"></div>
+            <div class="p-4">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <h5 class="fw-bold mb-0" style="color:#1a1a2e;">{{ tematica.titulo }}</h5>
+                    {% if tematica.status == 'CONCLUIDA' %}
+                    <span class="badge ms-2 flex-shrink-0" style="background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0;">Concluída</span>
+                    {% elif tematica.status == 'EM_ANDAMENTO' %}
+                    <span class="badge ms-2 flex-shrink-0" style="background:#fffbeb;color:#92400e;border:1px solid #fde68a;">Em andamento</span>
+                    {% else %}
+                    <span class="badge ms-2 flex-shrink-0" style="background:#eff6ff;color:var(--senac-blue);border:1px solid #bfdbfe;">Aberta</span>
+                    {% endif %}
+                </div>
+                {% if tematica.descricao %}
+                <p class="small mb-3" style="color:#374151;white-space:pre-wrap;line-height:1.7;">{{ tematica.descricao }}</p>
+                {% endif %}
+                <div class="d-flex flex-column gap-2 pt-3 border-top" style="font-size:.82rem;">
+                    <div><span style="color:#9aa5b4;font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;font-weight:700;">Turma</span><br><strong>{{ tematica.turma.nome if tematica.turma else '—' }}</strong> {% if tematica.turma %}<span style="color:#6b7280;">· {{ tematica.turma.semestre }}</span>{% endif %}</div>
+                    <div><span style="color:#9aa5b4;font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;font-weight:700;">Professor</span><br><strong>{{ tematica.professor.nome if tematica.professor else 'A definir' }}</strong></div>
+                    <div><span style="color:#9aa5b4;font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;font-weight:700;">Equipes</span><br><strong>{{ tematica.equipes|length }}</strong></div>
+                </div>
+            </div>
+        </div>
+        {% if usuario.tipo in ('ADMIN','COORDENADOR') %}
+        <div class="card p-3">
+            <div class="fw-semibold mb-2" style="font-size:.85rem;color:#1a1a2e;">Ações</div>
+            <div class="d-flex flex-column gap-2">
+                <a href="/tematicas/{{ tematica.id }}/editar" class="btn btn-outline-primary btn-sm" style="border-radius:8px;"><i class="bi bi-pencil me-2"></i>Editar temática</a>
+                <button class="btn btn-outline-danger btn-sm" style="border-radius:8px;" data-bs-toggle="modal" data-bs-target="#modalDelTematica"><i class="bi bi-trash me-2"></i>Excluir temática</button>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Equipes -->
+    <div class="col-lg-8">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="fw-bold" style="color:#1a1a2e;font-size:1rem;"><i class="bi bi-people me-2" style="color:var(--senac-blue);"></i>Equipes</div>
+            {% set pode_criar_equipe = (usuario.tipo in ('ADMIN','COORDENADOR')) or
+               (usuario.tipo == 'PROFESSOR' and tematica.professor_id == usuario.id) %}
+            {% if pode_criar_equipe %}
+            <button class="btn btn-primary btn-sm" style="border-radius:8px;" data-bs-toggle="modal" data-bs-target="#modalNovaEquipe"><i class="bi bi-plus-circle me-1"></i>Nova equipe</button>
+            {% endif %}
+        </div>
+
+        {% if tematica.equipes %}
+        <div class="row g-3">
+            {% for eq in tematica.equipes %}
+            <div class="col-sm-6">
+                <div class="card h-100" style="overflow:hidden;cursor:pointer;transition:box-shadow .15s,transform .15s;"
+                     onclick="window.location='/equipes/{{ eq.id }}'"
+                     onmouseover="this.style.boxShadow='0 6px 20px rgba(13,94,165,.14)';this.style.transform='translateY(-2px)'"
+                     onmouseout="this.style.boxShadow='';this.style.transform=''">
+                    <div style="height:3px;background:{% if eq.status=='FINALIZADO' %}#16a34a{% else %}var(--senac-blue){% endif %};"></div>
+                    <div class="p-3">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div class="fw-semibold" style="color:#1a1a2e;">{{ eq.nome }}</div>
+                            {% if eq.status == 'FINALIZADO' %}
+                            <span class="badge" style="background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0;font-size:.68rem;">Finalizado</span>
+                            {% else %}
+                            <span class="badge" style="background:#eff6ff;color:var(--senac-blue);border:1px solid #bfdbfe;font-size:.68rem;">Em andamento</span>
+                            {% endif %}
+                        </div>
+                        <div class="small mb-2" style="color:#6b7280;">
+                            <i class="bi bi-star-fill me-1" style="color:var(--senac-orange);font-size:.7rem;"></i>
+                            SM: <strong>{{ eq.scrum_master.nome if eq.scrum_master else 'Não definido' }}</strong>
+                        </div>
+                        <div class="d-flex justify-content-between" style="font-size:.75rem;color:#9aa5b4;">
+                            <span><i class="bi bi-people me-1"></i>{{ (eq.membros|length) + (1 if eq.scrum_master_id else 0) }} membro(s)</span>
+                            <span><i class="bi bi-file-earmark me-1"></i>{{ eq.entregas|length }} entrega(s)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="card"><div class="text-center py-4" style="color:#9aa5b4;"><i class="bi bi-people fs-2 d-block mb-2"></i>Nenhuma equipe criada ainda.{% if usuario.tipo in ('PROFESSOR','ADMIN','COORDENADOR') %}<div class="mt-2"><button class="btn btn-primary btn-sm" style="border-radius:8px;" data-bs-toggle="modal" data-bs-target="#modalNovaEquipe">Criar primeira equipe</button></div>{% endif %}</div></div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal: nova equipe -->
+{% set pode_criar_equipe = (usuario.tipo in ('ADMIN','COORDENADOR')) or
+   (usuario.tipo == 'PROFESSOR' and tematica.professor_id == usuario.id) %}
+{% if pode_criar_equipe %}
+<div class="modal fade" id="modalNovaEquipe" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius:12px;border:none;">
+            <div class="modal-header border-0"><h5 class="modal-title fw-bold">Nova Equipe</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <form method="post" action="/tematicas/{{ tematica.id }}/equipes/nova">
+                <div class="modal-body">
+                    <label class="form-label fw-semibold" style="font-size:.85rem;color:#374151;">Nome da equipe <span class="text-danger">*</span></label>
+                    <input type="text" name="nome" class="form-control" placeholder="Ex.: Equipe Alpha" required>
+                </div>
+                <div class="modal-footer border-0"><button type="button" class="btn btn-outline-secondary" style="border-radius:8px;" data-bs-dismiss="modal">Cancelar</button><button type="submit" class="btn btn-primary" style="border-radius:8px;"><i class="bi bi-plus-circle me-1"></i>Criar equipe</button></div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Modal: excluir temática -->
+<div class="modal fade" id="modalDelTematica" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius:12px;border:none;">
+            <div class="modal-header border-0"><h5 class="modal-title fw-bold">Confirmar exclusão</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body" style="color:#6b7280;">Excluir a temática <strong style="color:#1a1a2e;">{{ tematica.titulo }}</strong>? Todas as equipes e entregas vinculadas serão removidas.</div>
+            <div class="modal-footer border-0"><button type="button" class="btn btn-outline-secondary" style="border-radius:8px;" data-bs-dismiss="modal">Cancelar</button><form method="post" action="/tematicas/{{ tematica.id }}/deletar"><button type="submit" class="btn btn-danger" style="border-radius:8px;"><i class="bi bi-trash me-1"></i>Excluir</button></form></div>
+        </div>
+    </div>
+</div>
+{% endblock %}

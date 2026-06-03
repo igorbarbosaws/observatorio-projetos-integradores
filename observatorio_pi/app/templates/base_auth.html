@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 
 {% block body %}
-<!-- ── Navbar ──────────────────────────────────────────────────────────── -->
 <nav class="navbar navbar-senac navbar-expand-lg">
     <div class="container-fluid px-4">
         <a class="navbar-brand d-flex align-items-center gap-2" href="/dashboard">
@@ -10,81 +9,74 @@
             </div>
             <span>Observatório <span class="brand-dot">PI</span></span>
         </a>
-
         <div class="ms-auto d-flex align-items-center gap-3">
             <span class="text-white-50 small d-none d-sm-flex align-items-center gap-2">
-                <span class="d-flex align-items-center justify-content-center rounded-circle"
-                      style="width:28px;height:28px;background:rgba(255,255,255,.15);font-size:.8rem;">
+                <span style="width:28px;height:28px;background:rgba(255,255,255,.15);border-radius:50%;display:flex;align-items:center;justify-content:center;">
                     <i class="bi bi-person-fill text-white"></i>
                 </span>
                 <span class="text-white">{{ usuario.nome }}</span>
-                <span class="badge rounded-pill"
-                      style="background:var(--senac-orange);font-size:.68rem;font-weight:700;">
-                    {{ usuario.tipo }}
-                </span>
+                <span class="badge rounded-pill" style="background:var(--senac-orange);font-size:.68rem;font-weight:700;">{{ usuario.tipo }}</span>
             </span>
-            <a href="/logout"
-               class="btn btn-sm d-flex align-items-center gap-1"
+            <a href="/logout" class="btn btn-sm d-flex align-items-center gap-1"
                style="background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:8px;">
-                <i class="bi bi-box-arrow-right"></i>
-                <span class="d-none d-sm-inline">Sair</span>
+                <i class="bi bi-box-arrow-right"></i><span class="d-none d-sm-inline">Sair</span>
             </a>
         </div>
     </div>
 </nav>
 
-<!-- ── Layout ──────────────────────────────────────────────────────────── -->
 <div class="container-fluid g-0">
     <div class="row g-0">
-
-        <!-- Sidebar -->
         <nav class="col-md-2 d-none d-md-block sidebar">
-
             <div class="sidebar-section-label">Menu</div>
             <ul class="nav flex-column px-2">
                 <li class="nav-item">
-                    <a class="nav-link {% if active_page == 'dashboard' %}active{% endif %}"
-                       href="/dashboard">
+                    <a class="nav-link {% if active_page == 'dashboard' %}active{% endif %}" href="/dashboard">
                         <i class="bi bi-speedometer2 me-2"></i>Dashboard
                     </a>
                 </li>
+                {% if usuario.tipo in ('ADMIN','COORDENADOR') %}
                 <li class="nav-item">
-                    <a class="nav-link {% if active_page == 'projetos' %}active{% endif %}"
-                       href="/projetos">
-                        <i class="bi bi-folder2-open me-2"></i>
-                        {% if usuario.tipo == 'ALUNO' %}Meus Projetos{% else %}Projetos{% endif %}
+                    <a class="nav-link {% if active_page == 'turmas' %}active{% endif %}" href="/turmas">
+                        <i class="bi bi-building me-2"></i>Turmas
                     </a>
                 </li>
-                {% if usuario.tipo != 'ALUNO' %}
+                {% endif %}
                 <li class="nav-item">
-                    <a class="nav-link {% if active_page == 'portfolio' %}active{% endif %}"
-                       href="/portfolio">
+                    <a class="nav-link {% if active_page == 'tematicas' %}active{% endif %}" href="/tematicas">
+                        <i class="bi bi-lightbulb me-2"></i>
+                        {% if usuario.tipo == 'ALUNO' %}Minhas Temáticas{% else %}Temáticas{% endif %}
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if active_page == 'portfolio' %}active{% endif %}" href="/portfolio">
                         <i class="bi bi-grid-3x3-gap me-2"></i>Portfólio
+                    </a>
+                </li>
+                {% if usuario.tipo == 'ALUNO' %}
+                <li class="nav-item">
+                    <a class="nav-link {% if active_page == 'perfil' %}active{% endif %}" href="/meu-perfil">
+                        <i class="bi bi-person-badge me-2"></i>Meu Perfil
                     </a>
                 </li>
                 {% endif %}
             </ul>
-
-            {% if usuario.tipo in ('ADMIN', 'COORDENADOR') %}
+            {% if usuario.tipo in ('ADMIN','COORDENADOR') %}
             <div class="sidebar-section-label mt-2">Administração</div>
             <ul class="nav flex-column px-2">
                 <li class="nav-item">
-                    <a class="nav-link {% if active_page == 'usuarios' %}active{% endif %}"
-                       href="/usuarios">
+                    <a class="nav-link {% if active_page == 'usuarios' %}active{% endif %}" href="/usuarios">
                         <i class="bi bi-people me-2"></i>Usuários
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link {% if active_page == 'relatorios' %}active{% endif %}"
-                       href="/relatorios">
+                    <a class="nav-link {% if active_page == 'relatorios' %}active{% endif %}" href="/relatorios">
                         <i class="bi bi-bar-chart-line me-2"></i>Relatórios
                     </a>
                 </li>
             </ul>
             {% endif %}
-
-            <!-- Rodapé da sidebar -->
-            <div class="px-3 mt-auto pt-3 border-top mx-2" style="position:absolute;bottom:1rem;left:0;right:0;">
+            <div class="px-3 pt-3 border-top mx-2" style="position:absolute;bottom:1rem;left:0;right:0;">
                 <div class="d-flex align-items-center gap-2">
                     <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
                          style="width:32px;height:32px;background:var(--senac-blue);color:#fff;font-size:.8rem;font-weight:700;">
@@ -97,8 +89,6 @@
                 </div>
             </div>
         </nav>
-
-        <!-- Conteúdo principal -->
         <main class="col-md-10 main-content" style="min-height:calc(100vh - 60px);">
             {% block content %}{% endblock %}
         </main>

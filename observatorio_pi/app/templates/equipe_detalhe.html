@@ -1,0 +1,267 @@
+{% extends "base_auth.html" %}
+{% block title %}{{ equipe.nome }} — Observatório PI{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb small">
+        <li class="breadcrumb-item"><a href="/dashboard">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="/tematicas">Temáticas</a></li>
+        {% if equipe.tematica %}<li class="breadcrumb-item"><a href="/tematicas/{{ equipe.tematica.id }}">{{ equipe.tematica.titulo[:35] }}</a></li>{% endif %}
+        <li class="breadcrumb-item active">{{ equipe.nome }}</li>
+    </ol>
+</nav>
+
+{% if sucesso %}<div class="alert alert-success alert-dismissible d-flex align-items-center gap-2 py-2 mb-3"><i class="bi bi-check-circle-fill flex-shrink-0"></i><span>{{ sucesso }}</span><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>{% endif %}
+{% if erro %}<div class="alert alert-danger alert-dismissible d-flex align-items-center gap-2 py-2 mb-3"><i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i><span>{{ erro }}</span><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>{% endif %}
+
+<div class="row g-4">
+    <!-- Coluna lateral -->
+    <div class="col-lg-4">
+
+        <!-- Card da equipe -->
+        <div class="card mb-3" style="overflow:hidden;">
+            <div style="height:5px;background:{% if equipe.status=='FINALIZADO' %}linear-gradient(90deg,var(--senac-blue),#16a34a){% else %}linear-gradient(90deg,var(--senac-blue),var(--senac-orange)){% endif %};"></div>
+            <div class="p-4">
+                <div class="d-flex justify-content-between align-items-start mb-1">
+                    <h5 class="fw-bold mb-0" style="color:#1a1a2e;">{{ equipe.nome }}</h5>
+                    {% if equipe.status == 'FINALIZADO' %}
+                    <span class="badge ms-2" style="background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0;">Finalizado</span>
+                    {% else %}
+                    <span class="badge ms-2" style="background:#eff6ff;color:var(--senac-blue);border:1px solid #bfdbfe;">Em andamento</span>
+                    {% endif %}
+                </div>
+                {% if equipe.tematica %}
+                <div class="small mb-3" style="color:#6b7280;"><i class="bi bi-lightbulb me-1" style="color:var(--senac-orange);"></i>{{ equipe.tematica.titulo }}</div>
+                {% endif %}
+
+                <!-- Scrum Master destaque -->
+                <div class="rounded-3 p-3 mb-3" style="background:var(--senac-orange-light);border:1px solid #fde68a;">
+                    <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;color:#92400e;letter-spacing:.06em;margin-bottom:.25rem;">
+                        <i class="bi bi-star-fill me-1"></i>Scrum Master
+                    </div>
+                    <div class="fw-semibold" style="color:#1a1a2e;">{{ equipe.scrum_master.nome if equipe.scrum_master else 'Não definido' }}</div>
+                </div>
+
+                <!-- Membros -->
+                <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;color:#9aa5b4;letter-spacing:.06em;margin-bottom:.5rem;">Membros</div>
+                {% set todos_membros = [] %}
+                {% if equipe.scrum_master %}{% set _ = todos_membros.append(equipe.scrum_master) %}{% endif %}
+                {% for m in equipe.membros %}{% set _ = todos_membros.append(m.aluno) %}{% endfor %}
+                {% if todos_membros %}
+                <div class="d-flex flex-column gap-1 mb-3">
+                    {% for membro in todos_membros %}
+                    <div class="d-flex align-items-center justify-content-between py-1 border-bottom">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                                 style="width:28px;height:28px;background:var(--senac-blue);color:#fff;font-size:.72rem;font-weight:700;">{{ membro.nome[0].upper() }}</div>
+                            <span class="small fw-medium" style="color:#1a1a2e;">
+                                {% if membro.tipo == 'ALUNO' %}
+                                <a href="/alunos/{{ membro.id }}" class="text-decoration-none" style="color:#1a1a2e;">{{ membro.nome }}</a>
+                                {% else %}{{ membro.nome }}{% endif %}
+                            </span>
+                        </div>
+                        {% if membro.id == equipe.scrum_master_id %}
+                        <i class="bi bi-star-fill" style="color:var(--senac-orange);font-size:.75rem;" title="Scrum Master"></i>
+                        {% elif usuario.tipo in ('PROFESSOR','ADMIN','COORDENADOR') %}
+                        <div class="d-flex gap-1">
+                            <form method="post" action="/equipes/{{ equipe.id }}/definir-scrum-master" class="d-inline">
+                                <input type="hidden" name="aluno_id" value="{{ membro.id }}">
+                                <button type="submit" class="btn btn-outline-warning btn-sm py-0 px-1" style="border-radius:4px;font-size:.65rem;" title="Tornar Scrum Master"><i class="bi bi-star"></i></button>
+                            </form>
+                            <form method="post" action="/equipes/{{ equipe.id }}/remover-membro/{{ membro.id }}" class="d-inline">
+                                <button type="submit" class="btn btn-outline-danger btn-sm py-0 px-1" style="border-radius:4px;font-size:.65rem;" title="Remover"><i class="bi bi-x"></i></button>
+                            </form>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="small" style="color:#9aa5b4;">Nenhum membro ainda.</p>
+                {% endif %}
+
+                <!-- Adicionar membro -->
+                {% if usuario.tipo in ('PROFESSOR','ADMIN','COORDENADOR') and alunos_disponiveis %}
+                <form method="post" action="/equipes/{{ equipe.id }}/adicionar-membro" class="mt-2">
+                    <div class="input-group input-group-sm">
+                        <select name="aluno_id" class="form-select form-select-sm">
+                            <option value="">Adicionar aluno...</option>
+                            {% for a in alunos_disponiveis %}<option value="{{ a.id }}">{{ a.nome }}</option>{% endfor %}
+                        </select>
+                        <button type="submit" class="btn btn-primary btn-sm px-3" style="border-radius:0 8px 8px 0;"><i class="bi bi-plus-lg"></i></button>
+                    </div>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Ações -->
+        <div class="card p-3">
+            <div class="fw-semibold mb-2" style="font-size:.85rem;color:#1a1a2e;">Ações</div>
+            <div class="d-flex flex-column gap-2">
+                {% set pode_finalizar = (usuario.tipo in ('PROFESSOR','ADMIN','COORDENADOR')) or
+                    (usuario.tipo == 'ALUNO' and equipe.scrum_master_id == usuario.id) %}
+                {% if pode_finalizar and equipe.status != 'FINALIZADO' %}
+                <form method="post" action="/equipes/{{ equipe.id }}/finalizar">
+                    <button type="submit" class="btn btn-success w-100 text-start" style="border-radius:8px;"><i class="bi bi-check2-circle me-2"></i>Marcar como finalizado</button>
+                </form>
+                {% endif %}
+                {% set pode_excluir_equipe = (usuario.tipo in ('ADMIN','COORDENADOR')) or
+                   (usuario.tipo == 'PROFESSOR' and equipe.tematica and equipe.tematica.professor_id == usuario.id) %}
+                {% if pode_excluir_equipe %}
+                <button class="btn btn-outline-danger btn-sm text-start" style="border-radius:8px;" data-bs-toggle="modal" data-bs-target="#modalDelEquipe"><i class="bi bi-trash me-2"></i>Excluir equipe</button>
+                {% endif %}
+                {% if equipe.tematica %}
+                <a href="/tematicas/{{ equipe.tematica.id }}" class="btn btn-outline-secondary text-start" style="border-radius:8px;"><i class="bi bi-arrow-left me-2"></i>Voltar à temática</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Coluna principal -->
+    <div class="col-lg-8">
+
+        <!-- Entregas -->
+        <div class="card mb-4">
+            <div class="d-flex justify-content-between align-items-center px-4 pt-4 pb-3">
+                <div class="fw-bold" style="color:#1a1a2e;"><i class="bi bi-file-earmark-text me-2" style="color:var(--senac-blue);"></i>Entregas do projeto</div>
+                {% set pode_entregar = (usuario.tipo in ('PROFESSOR','ADMIN','COORDENADOR')) or
+                    (usuario.tipo == 'ALUNO' and equipe.status != 'FINALIZADO' and
+                    (equipe.scrum_master_id == usuario.id or
+                    equipe.membros|selectattr('aluno_id','equalto',usuario.id)|list|length > 0)) %}
+                {% if pode_entregar %}
+                <a href="/equipes/{{ equipe.id }}/entregas/nova" class="btn btn-primary btn-sm" style="border-radius:8px;"><i class="bi bi-plus-circle me-1"></i>Nova entrega</a>
+                {% endif %}
+            </div>
+            {% if equipe.entregas %}
+            <div class="px-4 pb-4">
+                {% for e in equipe.entregas %}
+                <div class="border rounded-3 p-3 mb-3" style="border-color:#e4eaf2 !important;">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <div class="fw-semibold" style="color:#1a1a2e;">{{ e.titulo }}</div>
+                            <div class="small" style="color:#9aa5b4;"><i class="bi bi-person me-1"></i>{{ e.autor.nome }} · v{{ e.versao }} · {{ e.criado_em.strftime('%d/%m/%Y') if e.criado_em else '' }}</div>
+                        </div>
+                        <div class="d-flex gap-1">
+                            {% set pode_editar = (usuario.tipo in ('PROFESSOR','ADMIN','COORDENADOR')) or (usuario.tipo == 'ALUNO' and e.autor_id == usuario.id) %}
+                            {% set pode_excluir = (usuario.tipo in ('PROFESSOR','ADMIN','COORDENADOR')) or (usuario.tipo == 'ALUNO' and equipe.scrum_master_id == usuario.id) %}
+                            {% if pode_editar %}<a href="/entregas/{{ e.id }}/editar" class="btn btn-outline-primary btn-sm py-0 px-2" style="border-radius:6px;font-size:.75rem;"><i class="bi bi-pencil"></i></a>{% endif %}
+                            {% if pode_excluir %}<form method="post" action="/entregas/{{ e.id }}/deletar" class="d-inline"><button type="submit" class="btn btn-outline-danger btn-sm py-0 px-2" style="border-radius:6px;font-size:.75rem;"><i class="bi bi-trash"></i></button></form>{% endif %}
+                        </div>
+                    </div>
+                    {% if e.descricao %}<p class="small mb-2" style="color:#374151;">{{ e.descricao }}</p>{% endif %}
+                    {% if e.tecnologias %}
+                    <div class="d-flex flex-wrap gap-1 mb-2">
+                        {% for tag in e.tecnologias.split(',') %}{% set tag=tag.strip() %}{% if tag %}<span class="badge" style="background:#f8fafc;color:#374151;border:1px solid #e4eaf2;font-size:.68rem;">{{ tag }}</span>{% endif %}{% endfor %}
+                    </div>
+                    {% endif %}
+                    {% if e.link_repositorio %}<a href="{{ e.link_repositorio }}" target="_blank" class="btn btn-sm" style="background:#1a1a2e;color:#fff;border-radius:6px;font-size:.75rem;"><i class="bi bi-github me-1"></i>Repositório</a>{% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-4 px-4" style="color:#9aa5b4;"><i class="bi bi-file-earmark fs-3 d-block mb-2"></i>Nenhuma entrega ainda.</div>
+            {% endif %}
+        </div>
+
+        <!-- Avaliação -->
+        {% if pode_avaliar %}
+        <div class="card" style="overflow:hidden;">
+            <div style="height:4px;background:linear-gradient(90deg,var(--senac-orange),var(--senac-blue));border-radius:4px;margin:0;"></div>
+            <div class="p-4">
+                <div class="fw-bold mb-1" style="color:#1a1a2e;"><i class="bi bi-clipboard-check me-2" style="color:var(--senac-orange);"></i>{% if ja_avaliou %}Atualizar avaliação{% else %}Avaliar equipe{% endif %}</div>
+                <p class="mb-4" style="font-size:.82rem;color:#6b7280;">Selecione o conceito SENAC para cada critério.</p>
+                <form method="post" action="/equipes/{{ equipe.id }}/avaliar">
+                    <div class="row g-3 mb-4">
+                        {% set criterios = [
+                            ('conceito_conteudo',     'Conteúdo / Relevância',       'bi-book',              ja_avaliou.conceito_conteudo     if ja_avaliou else 'BOM'),
+                            ('conceito_tecnica',      'Qualidade Técnica',           'bi-code-slash',        ja_avaliou.conceito_tecnica      if ja_avaliou else 'BOM'),
+                            ('conceito_apresentacao', 'Apresentação / Documentação', 'bi-file-earmark-text', ja_avaliou.conceito_apresentacao if ja_avaliou else 'BOM'),
+                            ('conceito_inovacao',     'Inovação / Criatividade',     'bi-lightbulb',         ja_avaliou.conceito_inovacao     if ja_avaliou else 'BOM'),
+                            ('conceito_equipe',       'Trabalho em Equipe',          'bi-people',            ja_avaliou.conceito_equipe       if ja_avaliou else 'BOM'),
+                        ] %}
+                        {% for campo, label, icone, valor in criterios %}
+                        <div class="col-sm-6">
+                            <label class="form-label fw-semibold" style="font-size:.82rem;color:#374151;"><i class="bi {{ icone }} me-1" style="color:var(--senac-blue);"></i>{{ label }}</label>
+                            <div class="d-flex gap-1 flex-wrap">
+                                {% for c in conceitos %}
+                                <input type="radio" class="btn-check" name="{{ campo }}" id="{{ campo }}_{{ c }}" value="{{ c }}" {% if valor == c %}checked{% endif %} required>
+                                <label class="btn btn-sm" for="{{ campo }}_{{ c }}"
+                                       style="border-radius:20px;font-size:.72rem;font-weight:600;
+                                       {% if c=='INSUFICIENTE' %}background:#fef2f2;color:#991b1b;border:1px solid #fecaca;
+                                       {% elif c=='REGULAR' %}background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;
+                                       {% elif c=='BOM' %}background:#fffbeb;color:#92400e;border:1px solid #fde68a;
+                                       {% elif c=='OTIMO' %}background:#eff6ff;color:var(--senac-blue);border:1px solid #bfdbfe;
+                                       {% else %}background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0;{% endif %}">
+                                    {{ conceito_label[c] }}
+                                </label>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                        <div class="col-12">
+                            <label class="form-label fw-semibold" style="font-size:.82rem;color:#374151;"><i class="bi bi-award me-1" style="color:var(--senac-orange);"></i>Conceito Final</label>
+                            <div class="d-flex gap-2 flex-wrap">
+                                {% for c in conceitos %}
+                                <input type="radio" class="btn-check" name="conceito_final" id="final_{{ c }}" value="{{ c }}" {% if (ja_avaliou.conceito_final if ja_avaliou else 'BOM') == c %}checked{% endif %} required>
+                                <label class="btn btn-sm fw-bold px-3" for="final_{{ c }}"
+                                       style="border-radius:20px;font-size:.78rem;
+                                       {% if c=='INSUFICIENTE' %}background:#fef2f2;color:#991b1b;border:2px solid #fecaca;
+                                       {% elif c=='REGULAR' %}background:#fff7ed;color:#c2410c;border:2px solid #fed7aa;
+                                       {% elif c=='BOM' %}background:#fffbeb;color:#92400e;border:2px solid #fde68a;
+                                       {% elif c=='OTIMO' %}background:#eff6ff;color:var(--senac-blue);border:2px solid #bfdbfe;
+                                       {% else %}background:#ecfdf5;color:#065f46;border:2px solid #a7f3d0;{% endif %}">
+                                    {{ conceito_label[c] }}
+                                </label>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold" style="font-size:.82rem;color:#374151;">Comentário / Feedback</label>
+                        <textarea name="comentario" class="form-control" rows="3" placeholder="Deixe um feedback construtivo...">{{ ja_avaliou.comentario if ja_avaliou else '' }}</textarea>
+                    </div>
+                    <button type="submit" class="btn btn-success" style="border-radius:8px;"><i class="bi bi-check-lg me-1"></i>{% if ja_avaliou %}Atualizar avaliação{% else %}Registrar avaliação{% endif %}</button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Exibir avaliação para alunos/empresa -->
+        {% if avaliacao and not pode_avaliar %}
+        <div class="card p-4" style="overflow:hidden;">
+            <div style="height:4px;background:linear-gradient(90deg,#16a34a,var(--senac-blue));margin:-1.5rem -1.5rem 1.5rem;border-radius:0;"></div>
+            <div class="fw-bold mb-3" style="color:#1a1a2e;"><i class="bi bi-patch-check me-2" style="color:#16a34a;"></i>Avaliação do Professor</div>
+            <div class="text-center mb-4 py-3 rounded-3" style="background:#eff6ff;">
+                <div class="fw-bold" style="font-size:1.6rem;color:var(--senac-blue);">{{ conceito_label[avaliacao.conceito_final] }}</div>
+                <div style="font-size:.78rem;color:#6b7280;">Conceito Final</div>
+            </div>
+            <div class="row g-2 mb-3">
+                {% for label_c, val_c in [('Conteúdo',avaliacao.conceito_conteudo),('Técnica',avaliacao.conceito_tecnica),('Apresentação',avaliacao.conceito_apresentacao),('Inovação',avaliacao.conceito_inovacao),('Equipe',avaliacao.conceito_equipe)] %}
+                <div class="col-sm-4"><div class="text-center p-2 rounded-2" style="background:#f8fafc;border:1px solid #e4eaf2;"><div style="font-size:.7rem;color:#9aa5b4;margin-bottom:.25rem;">{{ label_c }}</div><div class="fw-bold" style="font-size:.85rem;color:var(--senac-blue);">{{ conceito_label[val_c] }}</div></div></div>
+                {% endfor %}
+            </div>
+            {% if avaliacao.comentario %}
+            <div class="rounded-2 p-3" style="background:#f8fafc;font-size:.82rem;color:#374151;"><i class="bi bi-chat-left-quote me-2" style="color:var(--senac-blue);"></i>{{ avaliacao.comentario }}</div>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal excluir equipe -->
+{% if usuario.tipo in ('PROFESSOR','ADMIN','COORDENADOR') %}
+{% set eh_prof_tematica = (usuario.tipo in ('ADMIN','COORDENADOR')) or
+   (usuario.tipo == 'PROFESSOR' and equipe.tematica and equipe.tematica.professor_id == usuario.id) %}
+{% if eh_prof_tematica %}
+<div class="modal fade" id="modalDelEquipe" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius:12px;border:none;">
+            <div class="modal-header border-0"><h5 class="modal-title fw-bold">Confirmar exclusão</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body" style="color:#6b7280;">Excluir a equipe <strong style="color:#1a1a2e;">{{ equipe.nome }}</strong>? Todas as entregas e avaliações serão removidas.</div>
+            <div class="modal-footer border-0"><button type="button" class="btn btn-outline-secondary" style="border-radius:8px;" data-bs-dismiss="modal">Cancelar</button><form method="post" action="/equipes/{{ equipe.id }}/deletar"><button type="submit" class="btn btn-danger" style="border-radius:8px;"><i class="bi bi-trash me-1"></i>Excluir</button></form></div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endif %}
+{% endblock %}

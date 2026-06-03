@@ -1,0 +1,37 @@
+{% extends "base_auth.html" %}
+{% block title %}{% if editando %}Editar Turma{% else %}Nova Turma{% endif %} — Observatório PI{% endblock %}
+{% block content %}
+<div class="mb-4">
+    <nav aria-label="breadcrumb"><ol class="breadcrumb small"><li class="breadcrumb-item"><a href="/dashboard">Dashboard</a></li><li class="breadcrumb-item"><a href="/turmas">Turmas</a></li><li class="breadcrumb-item active">{% if editando %}Editar{% else %}Nova{% endif %}</li></ol></nav>
+    <div class="page-title"><i class="bi bi-building me-2" style="color:var(--senac-blue);"></i>{% if editando %}Editar turma{% else %}Nova turma{% endif %}</div>
+</div>
+<div class="card p-4" style="max-width:560px;overflow:hidden;">
+    <div style="height:4px;background:linear-gradient(90deg,var(--senac-blue),var(--senac-orange));border-radius:4px;margin:-1.5rem -1.5rem 1.5rem;"></div>
+    <form method="post" action="{% if editando %}/turmas/{{ editando.id }}/editar{% else %}/turmas/nova{% endif %}">
+        <div class="mb-3">
+            <label class="form-label fw-semibold" style="font-size:.85rem;color:#374151;">Nome da turma <span class="text-danger">*</span></label>
+            <input type="text" name="nome" class="form-control" placeholder="Ex.: ADS-2A" maxlength="20" value="{{ editando.nome if editando else '' }}" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label fw-semibold" style="font-size:.85rem;color:#374151;">Semestre <span class="text-danger">*</span></label>
+            <input type="text" name="semestre" class="form-control" placeholder="Ex.: 2025-1" maxlength="10" value="{{ editando.semestre if editando else '' }}" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label fw-semibold" style="font-size:.85rem;color:#374151;">Descrição</label>
+            <textarea name="descricao" class="form-control" rows="2" placeholder="Turno, período, observações...">{{ editando.descricao if editando else '' }}</textarea>
+        </div>
+        {% if editando %}
+        <div class="mb-4">
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" name="ativa" id="ativa" {% if editando.ativa %}checked{% endif %}>
+                <label class="form-check-label fw-semibold" for="ativa" style="font-size:.85rem;color:#374151;">Turma ativa</label>
+            </div>
+        </div>
+        {% endif %}
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary" style="border-radius:8px;"><i class="bi bi-check-lg me-1"></i>{% if editando %}Salvar{% else %}Criar turma{% endif %}</button>
+            <a href="/turmas" class="btn btn-outline-secondary" style="border-radius:8px;">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
