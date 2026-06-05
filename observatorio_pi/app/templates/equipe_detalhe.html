@@ -61,7 +61,7 @@
                         </div>
                         {% if membro.id == equipe.scrum_master_id %}
                         <i class="bi bi-star-fill" style="color:var(--senac-orange);font-size:.75rem;" title="Scrum Master"></i>
-                        {% elif usuario.tipo in ('PROFESSOR','ADMIN','COORDENADOR') %}
+                        {% elif usuario.tipo in ('PROFESSOR','ADMIN') %}
                         <div class="d-flex gap-1">
                             <form method="post" action="/equipes/{{ equipe.id }}/definir-scrum-master" class="d-inline">
                                 <input type="hidden" name="aluno_id" value="{{ membro.id }}">
@@ -80,7 +80,7 @@
                 {% endif %}
 
                 <!-- Adicionar membro -->
-                {% if usuario.tipo in ('PROFESSOR','ADMIN','COORDENADOR') and alunos_disponiveis %}
+                {% if usuario.tipo in ('PROFESSOR','ADMIN') and alunos_disponiveis %}
                 <form method="post" action="/equipes/{{ equipe.id }}/adicionar-membro" class="mt-2">
                     <div class="input-group input-group-sm">
                         <select name="aluno_id" class="form-select form-select-sm">

@@ -53,7 +53,7 @@
     <div class="col-lg-8">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <div class="fw-bold" style="color:#1a1a2e;font-size:1rem;"><i class="bi bi-people me-2" style="color:var(--senac-blue);"></i>Equipes</div>
-            {% set pode_criar_equipe = (usuario.tipo in ('ADMIN','COORDENADOR')) or
+            {% set pode_criar_equipe = (usuario.tipo == 'ADMIN') or
                (usuario.tipo == 'PROFESSOR' and tematica.professor_id == usuario.id) %}
             {% if pode_criar_equipe %}
             <button class="btn btn-primary btn-sm" style="border-radius:8px;" data-bs-toggle="modal" data-bs-target="#modalNovaEquipe"><i class="bi bi-plus-circle me-1"></i>Nova equipe</button>
@@ -92,13 +92,13 @@
             {% endfor %}
         </div>
         {% else %}
-        <div class="card"><div class="text-center py-4" style="color:#9aa5b4;"><i class="bi bi-people fs-2 d-block mb-2"></i>Nenhuma equipe criada ainda.{% if usuario.tipo in ('PROFESSOR','ADMIN','COORDENADOR') %}<div class="mt-2"><button class="btn btn-primary btn-sm" style="border-radius:8px;" data-bs-toggle="modal" data-bs-target="#modalNovaEquipe">Criar primeira equipe</button></div>{% endif %}</div></div>
+        <div class="card"><div class="text-center py-4" style="color:#9aa5b4;"><i class="bi bi-people fs-2 d-block mb-2"></i>Nenhuma equipe criada ainda.{% if usuario.tipo in ('PROFESSOR','ADMIN') %}<div class="mt-2"><button class="btn btn-primary btn-sm" style="border-radius:8px;" data-bs-toggle="modal" data-bs-target="#modalNovaEquipe">Criar primeira equipe</button></div>{% endif %}</div></div>
         {% endif %}
     </div>
 </div>
 
 <!-- Modal: nova equipe -->
-{% set pode_criar_equipe = (usuario.tipo in ('ADMIN','COORDENADOR')) or
+{% set pode_criar_equipe = (usuario.tipo == 'ADMIN') or
    (usuario.tipo == 'PROFESSOR' and tematica.professor_id == usuario.id) %}
 {% if pode_criar_equipe %}
 <div class="modal fade" id="modalNovaEquipe" tabindex="-1">

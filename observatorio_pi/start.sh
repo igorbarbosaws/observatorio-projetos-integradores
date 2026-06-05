@@ -3,7 +3,6 @@
 # Executado a partir de observatorio_pi/ (rootDir do Render)
 set -e
 
-# Cria tabelas e inicializa admin padrão
 python -c "
 import sys, os
 sys.path.insert(0, '.')
@@ -11,31 +10,45 @@ sys.path.insert(0, '.')
 from sqlalchemy import text
 from app.database import engine, Base, SessionLocal
 from app.models.user import User
-from app.models.project import Turma, Tematica, Equipe, EquipeMembro, EntregaProjeto, Avaliacao
+from app.models.project import (
+    Turma, Tematica, Equipe, EquipeMembro,
+    EntregaProjeto, Avaliacao, AvaliacaoAluno,
+)
 from app.core.security import hash_senha
 
-# Cria todas as tabelas do novo modelo
+# Cria todas as tabelas (inclui AvaliacaoAluno)
 Base.metadata.create_all(bind=engine)
 
-# Migração: colunas de perfil de aluno (bancos antigos)
+# Migrações: colunas adicionadas em versões anteriores
 with engine.connect() as conn:
-    cols = [row[1] for row in conn.execute(text('PRAGMA table_info(users)'))]
+    # Perfil do aluno (users)
+    cols_u = [row[1] for row in conn.execute(text('PRAGMA table_info(users)'))]
     for col, sql in [
         ('ativo',          'ALTER TABLE users ADD COLUMN ativo BOOLEAN NOT NULL DEFAULT 1'),
-        ('bio',            'ALTER TABLE users ADD COLUMN bio TEXT DEFAULT \"\"'),
-        ('linkedin',       'ALTER TABLE users ADD COLUMN linkedin VARCHAR DEFAULT \"\"'),
-        ('github',         'ALTER TABLE users ADD COLUMN github VARCHAR DEFAULT \"\"'),
-        ('portfolio_url',  'ALTER TABLE users ADD COLUMN portfolio_url VARCHAR DEFAULT \"\"'),
-        ('area_interesse', 'ALTER TABLE users ADD COLUMN area_interesse VARCHAR DEFAULT \"\"'),
-        ('cidade',         'ALTER TABLE users ADD COLUMN cidade VARCHAR DEFAULT \"\"'),
-        ('telefone',       'ALTER TABLE users ADD COLUMN telefone VARCHAR DEFAULT \"\"'),
+        ('bio',            \"ALTER TABLE users ADD COLUMN bio TEXT DEFAULT ''\"),
+        ('linkedin',       \"ALTER TABLE users ADD COLUMN linkedin VARCHAR DEFAULT ''\"),
+        ('github',         \"ALTER TABLE users ADD COLUMN github VARCHAR DEFAULT ''\"),
+        ('portfolio_url',  \"ALTER TABLE users ADD COLUMN portfolio_url VARCHAR DEFAULT ''\"),
+        ('area_interesse', \"ALTER TABLE users ADD COLUMN area_interesse VARCHAR DEFAULT ''\"),
+        ('cidade',         \"ALTER TABLE users ADD COLUMN cidade VARCHAR DEFAULT ''\"),
+        ('telefone',       \"ALTER TABLE users ADD COLUMN telefone VARCHAR DEFAULT ''\"),
     ]:
-        if col not in cols:
-            conn.execute(text(sql))
-            conn.commit()
-            print(f'Coluna {col} adicionada.')
+        if col not in cols_u:
+            conn.execute(text(sql)); conn.commit()
+            print(f'users: coluna {col} adicionada.')
 
-# Admin padrão (só cria se não existir nenhum usuário)
+    # Novos links nas entregas
+    cols_ep = [row[1] for row in conn.execute(text('PRAGMA table_info(entregas_projeto)'))]
+    for col, sql in [
+        ('link_apresentacao', \"ALTER TABLE entregas_projeto ADD COLUMN link_apresentacao VARCHAR DEFAULT ''\"),
+        ('link_documento',    \"ALTER TABLE entregas_projeto ADD COLUMN link_documento VARCHAR DEFAULT ''\"),
+        ('link_drive',        \"ALTER TABLE entregas_projeto ADD COLUMN link_drive VARCHAR DEFAULT ''\"),
+    ]:
+        if col not in cols_ep:
+            conn.execute(text(sql)); conn.commit()
+            print(f'entregas_projeto: coluna {col} adicionada.')
+
+# Admin padrão
 db = SessionLocal()
 try:
     if db.query(User).count() == 0:
@@ -55,7 +68,6 @@ finally:
     db.close()
 "
 
-# Inicia o servidor com Gunicorn + Uvicorn workers
 exec gunicorn app.main:app \
     --worker-class uvicorn.workers.UvicornWorker \
     --workers 2 \
