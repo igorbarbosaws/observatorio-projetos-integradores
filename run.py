@@ -132,10 +132,10 @@ def main():
 
     Base.metadata.create_all(bind=engine)
 
-    # Migração: coluna ativo (bancos muito antigos) + campos de perfil do aluno
+    # Migração: colunas novas (bancos antigos)
     with engine.connect() as conn:
         cols = [row[1] for row in conn.execute(text("PRAGMA table_info(users)"))]
-        migrações = [
+        for col, sql in [
             ("ativo",          "ALTER TABLE users ADD COLUMN ativo BOOLEAN NOT NULL DEFAULT 1"),
             ("bio",            "ALTER TABLE users ADD COLUMN bio TEXT DEFAULT ''"),
             ("linkedin",       "ALTER TABLE users ADD COLUMN linkedin VARCHAR DEFAULT ''"),
@@ -144,10 +144,19 @@ def main():
             ("area_interesse", "ALTER TABLE users ADD COLUMN area_interesse VARCHAR DEFAULT ''"),
             ("cidade",         "ALTER TABLE users ADD COLUMN cidade VARCHAR DEFAULT ''"),
             ("telefone",       "ALTER TABLE users ADD COLUMN telefone VARCHAR DEFAULT ''"),
-        ]
-        for col, sql in migrações:
+        ]:
             if col not in cols:
                 conn.execute(text(sql)); conn.commit()
+
+        cols_ep = [row[1] for row in conn.execute(text("PRAGMA table_info(entregas_projeto)"))]
+        for col, sql in [
+            ("link_apresentacao", "ALTER TABLE entregas_projeto ADD COLUMN link_apresentacao VARCHAR DEFAULT ''"),
+            ("link_documento",    "ALTER TABLE entregas_projeto ADD COLUMN link_documento VARCHAR DEFAULT ''"),
+            ("link_drive",        "ALTER TABLE entregas_projeto ADD COLUMN link_drive VARCHAR DEFAULT ''"),
+        ]:
+            if col not in cols_ep:
+                conn.execute(text(sql)); conn.commit()
+                print(f"Coluna '{col}' adicionada a entregas_projeto.")
 
     from app.database import SessionLocal
     from app.core.security import hash_senha

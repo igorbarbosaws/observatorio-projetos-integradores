@@ -98,21 +98,41 @@
         <div class="card p-3">
             <div class="fw-semibold mb-2" style="font-size:.85rem;color:#1a1a2e;">Ações</div>
             <div class="d-flex flex-column gap-2">
-                {% set pode_finalizar = (usuario.tipo == 'ALUNO' and equipe.scrum_master_id == usuario.id) %}
-                {% if pode_finalizar and equipe.status != 'FINALIZADO' %}
+                {# Finalizar: apenas Scrum Master, equipe em andamento #}
+                {% if usuario.tipo == 'ALUNO' and equipe.scrum_master_id == usuario.id and equipe.status != 'FINALIZADO' %}
                 <form method="post" action="/equipes/{{ equipe.id }}/finalizar">
                     <button type="submit" class="btn btn-success w-100 text-start" style="border-radius:8px;">
                         <i class="bi bi-check2-circle me-2"></i>Marcar como finalizado
                     </button>
                 </form>
                 {% endif %}
-                {% set pode_excluir_equipe = (usuario.tipo in ('ADMIN','COORDENADOR')) or
-                   (usuario.tipo == 'PROFESSOR' and equipe.tematica and equipe.tematica.professor_id == usuario.id) %}
+                {# Reabrir: apenas Scrum Master, equipe finalizada #}
+                {% if usuario.tipo == 'ALUNO' and equipe.scrum_master_id == usuario.id and equipe.status == 'FINALIZADO' %}
+                <form method="post" action="/equipes/{{ equipe.id }}/reabrir">
+                    <button type="submit" class="btn btn-warning w-100 text-start" style="border-radius:8px;">
+                        <i class="bi bi-arrow-counterclockwise me-2"></i>Reabrir para edição
+                    </button>
+                </form>
+                {% endif %}
+                {# Renomear equipe: professor da temática #}
+                {% set eh_prof = (usuario.tipo == 'PROFESSOR' and equipe.tematica and equipe.tematica.professor_id == usuario.id) %}
+                {% if eh_prof or usuario.tipo == 'ADMIN' %}
+                <button class="btn btn-outline-secondary btn-sm text-start" style="border-radius:8px;"
+                        data-bs-toggle="modal" data-bs-target="#modalRenomear">
+                    <i class="bi bi-pencil-square me-2"></i>Renomear equipe
+                </button>
+                {% endif %}
+                {% set pode_excluir_equipe = (usuario.tipo == 'ADMIN') or eh_prof %}
                 {% if pode_excluir_equipe %}
-                <button class="btn btn-outline-danger btn-sm text-start" style="border-radius:8px;" data-bs-toggle="modal" data-bs-target="#modalDelEquipe"><i class="bi bi-trash me-2"></i>Excluir equipe</button>
+                <button class="btn btn-outline-danger btn-sm text-start" style="border-radius:8px;"
+                        data-bs-toggle="modal" data-bs-target="#modalDelEquipe">
+                    <i class="bi bi-trash me-2"></i>Excluir equipe
+                </button>
                 {% endif %}
                 {% if equipe.tematica %}
-                <a href="/tematicas/{{ equipe.tematica.id }}" class="btn btn-outline-secondary text-start" style="border-radius:8px;"><i class="bi bi-arrow-left me-2"></i>Voltar à temática</a>
+                <a href="/tematicas/{{ equipe.tematica.id }}" class="btn btn-outline-secondary text-start" style="border-radius:8px;">
+                    <i class="bi bi-arrow-left me-2"></i>Voltar à temática
+                </a>
                 {% endif %}
             </div>
         </div>
@@ -140,16 +160,20 @@
                     <div class="d-flex justify-content-between align-items-start mb-2">
                         <div>
                             <div class="fw-semibold" style="color:#1a1a2e;">{{ e.titulo }}</div>
-                            <div class="small" style="color:#9aa5b4;"><i class="bi bi-person me-1"></i>{{ e.autor.nome }} · v{{ e.versao }} · {{ e.criado_em.strftime('%d/%m/%Y') if e.criado_em else '' }}</div>
+                            <div class="small" style="color:#9aa5b4;">
+                                <i class="bi bi-person me-1"></i>{{ e.autor.nome }} · v{{ e.versao }} · {{ e.criado_em.strftime('%d/%m/%Y') if e.criado_em else '' }}
+                            </div>
                         </div>
+                        {% if equipe.status != 'FINALIZADO' %}
                         <div class="d-flex gap-1">
-                            {# Editar: apenas o próprio autor da entrega #}
                             {% set pode_editar = (usuario.tipo == 'ALUNO' and e.autor_id == usuario.id) %}
-                            {# Excluir: apenas o Scrum Master da equipe (aluno líder) #}
                             {% set pode_excluir = (usuario.tipo == 'ALUNO' and equipe.scrum_master_id == usuario.id) %}
                             {% if pode_editar %}<a href="/entregas/{{ e.id }}/editar" class="btn btn-outline-primary btn-sm py-0 px-2" style="border-radius:6px;font-size:.75rem;" title="Editar minha entrega"><i class="bi bi-pencil"></i></a>{% endif %}
                             {% if pode_excluir %}<form method="post" action="/entregas/{{ e.id }}/deletar" class="d-inline"><button type="submit" class="btn btn-outline-danger btn-sm py-0 px-2" style="border-radius:6px;font-size:.75rem;" title="Excluir (Scrum Master)"><i class="bi bi-trash"></i></button></form>{% endif %}
                         </div>
+                        {% else %}
+                        <span class="badge" style="background:#f3f4f6;color:#6b7280;border:1px solid #d1d5db;font-size:.68rem;"><i class="bi bi-lock me-1"></i>Finalizado</span>
+                        {% endif %}
                     </div>
                     {% if e.descricao %}<p class="small mb-2" style="color:#374151;">{{ e.descricao }}</p>{% endif %}
                     {% if e.tecnologias %}
@@ -157,7 +181,13 @@
                         {% for tag in e.tecnologias.split(',') %}{% set tag=tag.strip() %}{% if tag %}<span class="badge" style="background:#f8fafc;color:#374151;border:1px solid #e4eaf2;font-size:.68rem;">{{ tag }}</span>{% endif %}{% endfor %}
                     </div>
                     {% endif %}
-                    {% if e.link_repositorio %}<a href="{{ e.link_repositorio }}" target="_blank" class="btn btn-sm" style="background:#1a1a2e;color:#fff;border-radius:6px;font-size:.75rem;"><i class="bi bi-github me-1"></i>Repositório</a>{% endif %}
+                    <!-- Links do projeto -->
+                    <div class="d-flex flex-wrap gap-2 mt-2">
+                        {% if e.link_repositorio %}<a href="{{ e.link_repositorio }}" target="_blank" class="btn btn-sm" style="background:#1a1a2e;color:#fff;border-radius:6px;font-size:.72rem;"><i class="bi bi-github me-1"></i>GitHub</a>{% endif %}
+                        {% if e.link_apresentacao %}<a href="{{ e.link_apresentacao }}" target="_blank" class="btn btn-sm" style="background:#7c3aed;color:#fff;border-radius:6px;font-size:.72rem;"><i class="bi bi-easel me-1"></i>Apresentação</a>{% endif %}
+                        {% if e.link_documento %}<a href="{{ e.link_documento }}" target="_blank" class="btn btn-sm" style="background:#2563eb;color:#fff;border-radius:6px;font-size:.72rem;"><i class="bi bi-file-earmark-word me-1"></i>Documento</a>{% endif %}
+                        {% if e.link_drive %}<a href="{{ e.link_drive }}" target="_blank" class="btn btn-sm" style="background:#d97706;color:#fff;border-radius:6px;font-size:.72rem;"><i class="bi bi-folder2-open me-1"></i>Drive</a>{% endif %}
+                    </div>
                 </div>
                 {% endfor %}
             </div>
@@ -252,10 +282,8 @@
 </div>
 
 <!-- Modal excluir equipe -->
-{% if usuario.tipo in ('PROFESSOR','ADMIN','COORDENADOR') %}
-{% set eh_prof_tematica = (usuario.tipo in ('ADMIN','COORDENADOR')) or
-   (usuario.tipo == 'PROFESSOR' and equipe.tematica and equipe.tematica.professor_id == usuario.id) %}
-{% if eh_prof_tematica %}
+{% set eh_prof = (usuario.tipo == 'ADMIN') or (usuario.tipo == 'PROFESSOR' and equipe.tematica and equipe.tematica.professor_id == usuario.id) %}
+{% if eh_prof %}
 <div class="modal fade" id="modalDelEquipe" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content" style="border-radius:12px;border:none;">
@@ -265,6 +293,73 @@
         </div>
     </div>
 </div>
+<div class="modal fade" id="modalRenomear" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius:12px;border:none;">
+            <div class="modal-header border-0"><h5 class="modal-title fw-bold">Renomear equipe</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <form method="post" action="/equipes/{{ equipe.id }}/renomear">
+                <div class="modal-body">
+                    <label class="form-label fw-semibold" style="font-size:.85rem;color:#374151;">Novo nome</label>
+                    <input type="text" name="nome" class="form-control" value="{{ equipe.nome }}" required maxlength="100">
+                </div>
+                <div class="modal-footer border-0"><button type="button" class="btn btn-outline-secondary" style="border-radius:8px;" data-bs-dismiss="modal">Cancelar</button><button type="submit" class="btn btn-primary" style="border-radius:8px;"><i class="bi bi-check-lg me-1"></i>Renomear</button></div>
+            </form>
+        </div>
+    </div>
+</div>
 {% endif %}
+
+<!-- Avaliação individual por aluno -->
+{% if pode_avaliar and todos_membros %}
+<div class="card mt-4" style="overflow:hidden;">
+    <div style="height:4px;background:linear-gradient(90deg,#16a34a,var(--senac-blue));margin:0;"></div>
+    <div class="p-4">
+        <div class="fw-bold mb-1" style="color:#1a1a2e;"><i class="bi bi-person-check me-2" style="color:#16a34a;"></i>Avaliação individual dos alunos</div>
+        <p class="mb-4" style="font-size:.82rem;color:#6b7280;">Avalie o desempenho individual de cada membro da equipe.</p>
+        <div class="d-flex flex-column gap-3">
+            {% for membro in todos_membros %}
+            {% set av_ind = avals_individuais.get(membro.id) %}
+            <div class="border rounded-3 p-3" style="border-color:#e4eaf2 !important;">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold flex-shrink-0"
+                         style="width:36px;height:36px;background:var(--senac-blue);color:#fff;font-size:.85rem;">{{ membro.nome[0].upper() }}</div>
+                    <div class="flex-grow-1">
+                        <div class="fw-semibold" style="color:#1a1a2e;">{{ membro.nome }}</div>
+                        {% if membro.id == equipe.scrum_master_id %}<span class="badge" style="background:var(--senac-orange-light);color:#92400e;border:1px solid #fde68a;font-size:.65rem;"><i class="bi bi-star-fill me-1"></i>Scrum Master</span>{% endif %}
+                    </div>
+                    {% if av_ind %}
+                    <span class="badge px-3 py-2" style="font-size:.8rem;font-weight:700;
+                        {% if av_ind.conceito=='EXCELENTE' %}background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0;
+                        {% elif av_ind.conceito=='OTIMO' %}background:#eff6ff;color:var(--senac-blue);border:1px solid #bfdbfe;
+                        {% elif av_ind.conceito=='BOM' %}background:#fffbeb;color:#92400e;border:1px solid #fde68a;
+                        {% elif av_ind.conceito=='REGULAR' %}background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;
+                        {% else %}background:#fef2f2;color:#991b1b;border:1px solid #fecaca;{% endif %}">
+                        {{ conceito_label[av_ind.conceito] }}
+                    </span>
+                    {% endif %}
+                </div>
+                <form method="post" action="/equipes/{{ equipe.id }}/avaliar-aluno" class="row g-2 align-items-end">
+                    <input type="hidden" name="aluno_id" value="{{ membro.id }}">
+                    <div class="col-sm-4">
+                        <label class="form-label fw-semibold mb-1" style="font-size:.78rem;color:#374151;">Conceito</label>
+                        <select name="conceito" class="form-select form-select-sm" required>
+                            {% for c in conceitos %}
+                            <option value="{{ c }}" {% if av_ind and av_ind.conceito==c %}selected{% elif not av_ind and c=='BOM' %}selected{% endif %}>{{ conceito_label[c] }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="form-label fw-semibold mb-1" style="font-size:.78rem;color:#374151;">Comentário</label>
+                        <input type="text" name="comentario" class="form-control form-control-sm" placeholder="Feedback breve..." value="{{ av_ind.comentario if av_ind else '' }}">
+                    </div>
+                    <div class="col-sm-2">
+                        <button type="submit" class="btn btn-success btn-sm w-100" style="border-radius:8px;"><i class="bi bi-check-lg"></i></button>
+                    </div>
+                </form>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
 {% endif %}
 {% endblock %}

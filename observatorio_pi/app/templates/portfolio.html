@@ -16,7 +16,7 @@
 
 <div class="card p-3 mb-4">
     <form method="get" action="/portfolio" class="row g-2 align-items-end">
-        <div class="col-sm-4">
+        <div class="col-sm-3">
             <label class="form-label fw-semibold mb-1" style="font-size:.82rem;color:#374151;">Buscar</label>
             <div class="input-group input-group-sm">
                 <span class="input-group-text" style="background:#f8fafc;border-color:#e4eaf2;"><i class="bi bi-search" style="color:var(--senac-blue);"></i></span>
@@ -24,13 +24,20 @@
             </div>
         </div>
         <div class="col-sm-3">
+            <label class="form-label fw-semibold mb-1" style="font-size:.82rem;color:#374151;">Stack / Tecnologia</label>
+            <select name="filtro_stack" class="form-select form-select-sm">
+                <option value="">Todas as tecnologias</option>
+                {% for s in todas_stacks %}<option value="{{ s }}" {% if filtro_stack == s %}selected{% endif %}>{{ s }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="col-sm-2">
             <label class="form-label fw-semibold mb-1" style="font-size:.82rem;color:#374151;">Turma</label>
             <select name="filtro_turma" class="form-select form-select-sm">
                 <option value="">Todas</option>
                 {% for t in turmas %}<option value="{{ t.id }}" {% if filtro_turma == t.id|string %}selected{% endif %}>{{ t.nome }}</option>{% endfor %}
             </select>
         </div>
-        <div class="col-sm-3">
+        <div class="col-sm-2">
             <label class="form-label fw-semibold mb-1" style="font-size:.82rem;color:#374151;">Semestre</label>
             <select name="filtro_semestre" class="form-select form-select-sm">
                 <option value="">Todos</option>
@@ -40,7 +47,9 @@
         <div class="col-sm-2 d-flex gap-2">
             <button type="submit" class="btn btn-primary btn-sm w-100" style="border-radius:8px;"><i class="bi bi-search me-1"></i>Buscar</button>
         </div>
-        {% if busca or filtro_turma or filtro_semestre %}<div class="col-12"><a href="/portfolio" class="btn btn-outline-secondary btn-sm" style="border-radius:8px;"><i class="bi bi-x-circle me-1"></i>Limpar</a></div>{% endif %}
+        {% if busca or filtro_turma or filtro_semestre or filtro_stack %}
+        <div class="col-12"><a href="/portfolio" class="btn btn-outline-secondary btn-sm" style="border-radius:8px;"><i class="bi bi-x-circle me-1"></i>Limpar</a></div>
+        {% endif %}
     </form>
 </div>
 

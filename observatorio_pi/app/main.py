@@ -10,7 +10,7 @@ from app.database import engine, Base, get_db
 from app.models.user import User
 from app.models.project import (
     Turma, Tematica, Equipe, EquipeMembro,
-    EntregaProjeto, Avaliacao,
+    EntregaProjeto, Avaliacao, AvaliacaoAluno,
     CONCEITOS, CONCEITO_LABEL, CONCEITO_ORDEM,
 )
 from app.routers import auth_router, project_router, user_router
@@ -447,8 +447,8 @@ def criar_equipe(tematica_id: int, request: Request, nome: str = Form(...), db: 
     usuario = get_usuario_logado(request, db)
     if not usuario:
         return RedirectResponse(url="/", status_code=303)
-    # Apenas Admin/Coordenador OU professor responsável pela temática
-    if usuario.tipo not in ("ADMIN", "COORDENADOR"):
+    # Apenas Professor responsável (COORDENADOR não gerencia equipes)
+    if usuario.tipo not in ("ADMIN",):
         if usuario.tipo != "PROFESSOR" or not _professor_da_tematica(db, usuario.id, tematica_id):
             return RedirectResponse(url=f"/tematicas/{tematica_id}?erro=Sem+permissão+para+criar+equipes+nesta+temática", status_code=303)
     db.add(Equipe(nome=nome, tematica_id=tematica_id))
@@ -473,21 +473,38 @@ def detalhe_equipe(equipe_id: int, request: Request, db: Session = Depends(get_d
         ~User.id.in_(ids_membros + ([equipe.scrum_master_id] if equipe.scrum_master_id else []))
     ).order_by(User.nome).all()
     avaliacao = db.query(Avaliacao).filter(Avaliacao.equipe_id == equipe_id).first()
-    # Formulário de avaliação: apenas o professor responsável pela temática
+    # Formulário de avaliação: apenas o professor responsável pela temática (não coordenador)
     eh_professor_da_tematica = (
         usuario.tipo == "PROFESSOR" and
         equipe.tematica_id is not None and
         _professor_da_tematica(db, usuario.id, equipe.tematica_id)
     )
-    pode_avaliar = (usuario.tipo in ("ADMIN", "COORDENADOR")) or eh_professor_da_tematica
+    pode_avaliar = (usuario.tipo == "ADMIN") or eh_professor_da_tematica
     ja_avaliou = db.query(Avaliacao).filter(
         Avaliacao.equipe_id == equipe_id, Avaliacao.professor_id == usuario.id
     ).first() if pode_avaliar else None
+
+    # Avaliações individuais dos alunos
+    avals_individuais = {}
+    if pode_avaliar:
+        for av_ind in db.query(AvaliacaoAluno).filter(
+            AvaliacaoAluno.equipe_id == equipe_id,
+            AvaliacaoAluno.professor_id == usuario.id,
+        ).all():
+            avals_individuais[av_ind.aluno_id] = av_ind
+
+    # Todos os membros da equipe (para exibir avaliações individuais)
+    todos_membros_ids = ([equipe.scrum_master_id] if equipe.scrum_master_id else []) + \
+                        [m.aluno_id for m in equipe.membros]
+    todos_membros = db.query(User).filter(User.id.in_(todos_membros_ids)).all() if todos_membros_ids else []
+
     return templates.TemplateResponse("equipe_detalhe.html", {
         "request": request, "usuario": usuario, "equipe": equipe,
         "alunos_disponiveis": alunos_disponiveis,
         "avaliacao": avaliacao, "ja_avaliou": ja_avaliou,
         "pode_avaliar": pode_avaliar,
+        "avals_individuais": avals_individuais,
+        "todos_membros": todos_membros,
         "conceitos": CONCEITOS, "conceito_label": CONCEITO_LABEL,
         "sucesso": request.query_params.get("sucesso"),
         "erro": request.query_params.get("erro"),
@@ -503,8 +520,7 @@ def adicionar_membro(equipe_id: int, request: Request, aluno_id: int = Form(...)
     equipe = db.query(Equipe).filter(Equipe.id == equipe_id).first()
     if not equipe:
         return RedirectResponse(url="/dashboard", status_code=303)
-    # Apenas Admin/Coordenador OU professor da temática
-    if usuario.tipo not in ("ADMIN", "COORDENADOR"):
+    if usuario.tipo not in ("ADMIN",):
         if usuario.tipo != "PROFESSOR" or not _professor_da_tematica(db, usuario.id, equipe.tematica_id):
             return RedirectResponse(url=f"/equipes/{equipe_id}?erro=Apenas+o+professor+responsável+pode+adicionar+alunos", status_code=303)
     existente = db.query(EquipeMembro).filter(EquipeMembro.equipe_id == equipe_id, EquipeMembro.aluno_id == aluno_id).first()
@@ -522,7 +538,7 @@ def remover_membro(equipe_id: int, aluno_id: int, request: Request, db: Session 
     equipe = db.query(Equipe).filter(Equipe.id == equipe_id).first()
     if not equipe:
         return RedirectResponse(url="/dashboard", status_code=303)
-    if usuario.tipo not in ("ADMIN", "COORDENADOR"):
+    if usuario.tipo not in ("ADMIN",):
         if usuario.tipo != "PROFESSOR" or not _professor_da_tematica(db, usuario.id, equipe.tematica_id):
             return RedirectResponse(url=f"/equipes/{equipe_id}?erro=Apenas+o+professor+responsável+pode+remover+alunos", status_code=303)
     m = db.query(EquipeMembro).filter(EquipeMembro.equipe_id == equipe_id, EquipeMembro.aluno_id == aluno_id).first()
@@ -539,11 +555,27 @@ def definir_scrum_master(equipe_id: int, request: Request, aluno_id: int = Form(
     equipe = db.query(Equipe).filter(Equipe.id == equipe_id).first()
     if not equipe:
         return RedirectResponse(url="/dashboard", status_code=303)
-    if usuario.tipo not in ("ADMIN", "COORDENADOR"):
+    if usuario.tipo not in ("ADMIN",):
         if usuario.tipo != "PROFESSOR" or not _professor_da_tematica(db, usuario.id, equipe.tematica_id):
             return RedirectResponse(url=f"/equipes/{equipe_id}?erro=Apenas+o+professor+responsável+pode+definir+o+Scrum+Master", status_code=303)
     equipe.scrum_master_id = aluno_id; db.commit()
     return RedirectResponse(url=f"/equipes/{equipe_id}?sucesso=Scrum+Master+definido", status_code=303)
+
+
+@app.post("/equipes/{equipe_id}/renomear", response_class=HTMLResponse)
+def renomear_equipe(equipe_id: int, request: Request, nome: str = Form(...), db: Session = Depends(get_db)):
+    usuario = get_usuario_logado(request, db)
+    if not usuario:
+        return RedirectResponse(url="/", status_code=303)
+    equipe = db.query(Equipe).filter(Equipe.id == equipe_id).first()
+    if not equipe:
+        return RedirectResponse(url="/dashboard", status_code=303)
+    if usuario.tipo not in ("ADMIN",):
+        if usuario.tipo != "PROFESSOR" or not _professor_da_tematica(db, usuario.id, equipe.tematica_id):
+            return RedirectResponse(url=f"/equipes/{equipe_id}?erro=Sem+permissão", status_code=303)
+    if nome.strip():
+        equipe.nome = nome.strip(); db.commit()
+    return RedirectResponse(url=f"/equipes/{equipe_id}?sucesso=Equipe+renomeada+com+sucesso", status_code=303)
 
 
 @app.post("/equipes/{equipe_id}/finalizar", response_class=HTMLResponse)
@@ -554,13 +586,29 @@ def finalizar_equipe(equipe_id: int, request: Request, db: Session = Depends(get
     equipe = db.query(Equipe).filter(Equipe.id == equipe_id).first()
     if not equipe:
         return RedirectResponse(url="/dashboard", status_code=303)
-    # Apenas Scrum Master pode finalizar (Professor/Admin também)
     if usuario.tipo == "ALUNO" and equipe.scrum_master_id != usuario.id:
         return RedirectResponse(url=f"/equipes/{equipe_id}?erro=Apenas+o+Scrum+Master+pode+marcar+como+finalizado", status_code=303)
     if usuario.tipo not in ("ALUNO", "PROFESSOR", "ADMIN", "COORDENADOR"):
         return RedirectResponse(url=f"/equipes/{equipe_id}?erro=Sem+permissão", status_code=303)
     equipe.status = "FINALIZADO"; db.commit()
     return RedirectResponse(url=f"/equipes/{equipe_id}?sucesso=Projeto+marcado+como+finalizado", status_code=303)
+
+
+@app.post("/equipes/{equipe_id}/reabrir", response_class=HTMLResponse)
+def reabrir_equipe(equipe_id: int, request: Request, db: Session = Depends(get_db)):
+    """Apenas o Scrum Master pode desfazer o 'Finalizado'."""
+    usuario = get_usuario_logado(request, db)
+    if not usuario:
+        return RedirectResponse(url="/", status_code=303)
+    equipe = db.query(Equipe).filter(Equipe.id == equipe_id).first()
+    if not equipe:
+        return RedirectResponse(url="/dashboard", status_code=303)
+    if usuario.tipo == "ALUNO" and equipe.scrum_master_id != usuario.id:
+        return RedirectResponse(url=f"/equipes/{equipe_id}?erro=Apenas+o+Scrum+Master+pode+reabrir+o+projeto", status_code=303)
+    if usuario.tipo not in ("ALUNO", "PROFESSOR", "ADMIN"):
+        return RedirectResponse(url=f"/equipes/{equipe_id}?erro=Sem+permissão", status_code=303)
+    equipe.status = "EM_ANDAMENTO"; db.commit()
+    return RedirectResponse(url=f"/equipes/{equipe_id}?sucesso=Projeto+reaberto+para+edição", status_code=303)
 
 
 @app.post("/equipes/{equipe_id}/deletar")
@@ -571,7 +619,7 @@ def deletar_equipe(equipe_id: int, request: Request, db: Session = Depends(get_d
     equipe = db.query(Equipe).filter(Equipe.id == equipe_id).first()
     if not equipe:
         return RedirectResponse(url="/tematicas", status_code=303)
-    if usuario.tipo not in ("ADMIN", "COORDENADOR"):
+    if usuario.tipo not in ("ADMIN",):
         if usuario.tipo != "PROFESSOR" or not _professor_da_tematica(db, usuario.id, equipe.tematica_id):
             return RedirectResponse(url=f"/equipes/{equipe_id}?erro=Sem+permissão", status_code=303)
     tematica_id = equipe.tematica_id
@@ -602,19 +650,24 @@ def nova_entrega_view(equipe_id: int, request: Request, db: Session = Depends(ge
 
 
 @app.post("/equipes/{equipe_id}/entregas/nova", response_class=HTMLResponse)
-def criar_entrega(equipe_id: int, request: Request, titulo: str = Form(...), descricao: str = Form(""), tecnologias: str = Form(""), link_repositorio: str = Form(""), db: Session = Depends(get_db)):
+def criar_entrega(equipe_id: int, request: Request,
+    titulo: str = Form(...), descricao: str = Form(""),
+    tecnologias: str = Form(""), link_repositorio: str = Form(""),
+    link_apresentacao: str = Form(""), link_documento: str = Form(""),
+    link_drive: str = Form(""), db: Session = Depends(get_db)):
     usuario = get_usuario_logado(request, db)
     if not usuario or usuario.tipo != "ALUNO":
         return RedirectResponse(url="/dashboard", status_code=303)
     equipe = db.query(Equipe).filter(Equipe.id == equipe_id).first()
     if not equipe or equipe.status == "FINALIZADO":
-        return RedirectResponse(url=f"/equipes/{equipe_id}?erro=Projeto+já+finalizado", status_code=303)
+        return RedirectResponse(url=f"/equipes/{equipe_id}?erro=Projeto+finalizado.+Não+é+possível+adicionar+entregas", status_code=303)
     if not _is_membro(db, usuario.id, equipe_id):
         return RedirectResponse(url=f"/equipes/{equipe_id}?erro=Você+não+faz+parte+desta+equipe", status_code=303)
     db.add(EntregaProjeto(
         equipe_id=equipe_id, autor_id=usuario.id,
-        titulo=titulo, descricao=descricao,
-        tecnologias=tecnologias, link_repositorio=link_repositorio,
+        titulo=titulo, descricao=descricao, tecnologias=tecnologias,
+        link_repositorio=link_repositorio, link_apresentacao=link_apresentacao,
+        link_documento=link_documento, link_drive=link_drive,
     ))
     db.commit()
     return RedirectResponse(url=f"/equipes/{equipe_id}?sucesso=Entrega+adicionada+com+sucesso", status_code=303)
@@ -628,7 +681,8 @@ def editar_entrega_view(entrega_id: int, request: Request, db: Session = Depends
     entrega = db.query(EntregaProjeto).filter(EntregaProjeto.id == entrega_id).first()
     if not entrega:
         return RedirectResponse(url="/dashboard", status_code=303)
-    # Apenas o próprio autor pode editar sua entrega
+    if entrega.equipe.status == "FINALIZADO":
+        return RedirectResponse(url=f"/equipes/{entrega.equipe_id}?erro=Projeto+finalizado.+Não+é+possível+editar", status_code=303)
     if usuario.tipo != "ALUNO" or entrega.autor_id != usuario.id:
         return RedirectResponse(url=f"/equipes/{entrega.equipe_id}?erro=Apenas+o+autor+pode+editar+sua+entrega", status_code=303)
     return templates.TemplateResponse("entrega_form.html", {
@@ -637,18 +691,25 @@ def editar_entrega_view(entrega_id: int, request: Request, db: Session = Depends
 
 
 @app.post("/entregas/{entrega_id}/editar", response_class=HTMLResponse)
-def salvar_entrega(entrega_id: int, request: Request, titulo: str = Form(...), descricao: str = Form(""), tecnologias: str = Form(""), link_repositorio: str = Form(""), db: Session = Depends(get_db)):
+def salvar_entrega(entrega_id: int, request: Request,
+    titulo: str = Form(...), descricao: str = Form(""),
+    tecnologias: str = Form(""), link_repositorio: str = Form(""),
+    link_apresentacao: str = Form(""), link_documento: str = Form(""),
+    link_drive: str = Form(""), db: Session = Depends(get_db)):
     usuario = get_usuario_logado(request, db)
     if not usuario:
         return RedirectResponse(url="/", status_code=303)
     entrega = db.query(EntregaProjeto).filter(EntregaProjeto.id == entrega_id).first()
     if not entrega:
         return RedirectResponse(url="/dashboard", status_code=303)
-    # Apenas o próprio autor pode editar
+    if entrega.equipe.status == "FINALIZADO":
+        return RedirectResponse(url=f"/equipes/{entrega.equipe_id}?erro=Projeto+finalizado.+Não+é+possível+editar", status_code=303)
     if usuario.tipo != "ALUNO" or entrega.autor_id != usuario.id:
         return RedirectResponse(url=f"/equipes/{entrega.equipe_id}?erro=Apenas+o+autor+pode+editar+sua+entrega", status_code=303)
     entrega.titulo = titulo; entrega.descricao = descricao
     entrega.tecnologias = tecnologias; entrega.link_repositorio = link_repositorio
+    entrega.link_apresentacao = link_apresentacao; entrega.link_documento = link_documento
+    entrega.link_drive = link_drive
     entrega.versao += 1; entrega.atualizado_em = datetime.now(timezone.utc)
     db.commit()
     return RedirectResponse(url=f"/equipes/{entrega.equipe_id}?sucesso=Entrega+atualizada", status_code=303)
@@ -663,7 +724,8 @@ def deletar_entrega(entrega_id: int, request: Request, db: Session = Depends(get
     if not entrega:
         return RedirectResponse(url="/dashboard", status_code=303)
     equipe = entrega.equipe
-    # Apenas o Scrum Master pode excluir entregas
+    if equipe.status == "FINALIZADO":
+        return RedirectResponse(url=f"/equipes/{equipe.id}?erro=Projeto+finalizado.+Não+é+possível+excluir+entregas", status_code=303)
     if usuario.tipo != "ALUNO" or equipe.scrum_master_id != usuario.id:
         return RedirectResponse(url=f"/equipes/{equipe.id}?erro=Apenas+o+Scrum+Master+pode+excluir+entregas", status_code=303)
     db.delete(entrega); db.commit()
@@ -684,8 +746,8 @@ def avaliar_equipe(equipe_id: int, request: Request,
     equipe = db.query(Equipe).filter(Equipe.id == equipe_id).first()
     if not equipe:
         return RedirectResponse(url="/dashboard", status_code=303)
-    # Apenas Admin/Coordenador OU professor da temática
-    if usuario.tipo not in ("ADMIN", "COORDENADOR"):
+    # Apenas professor da temática ou admin (não coordenador)
+    if usuario.tipo not in ("ADMIN",):
         if usuario.tipo != "PROFESSOR" or not _professor_da_tematica(db, usuario.id, equipe.tematica_id):
             return RedirectResponse(url=f"/equipes/{equipe_id}?erro=Apenas+o+professor+responsável+pode+avaliar", status_code=303)
     validos = set(CONCEITOS)
@@ -706,10 +768,43 @@ def avaliar_equipe(equipe_id: int, request: Request,
     return RedirectResponse(url=f"/equipes/{equipe_id}?sucesso=Avaliação+registrada+com+sucesso", status_code=303)
 
 
+@app.post("/equipes/{equipe_id}/avaliar-aluno", response_class=HTMLResponse)
+def avaliar_aluno(equipe_id: int, request: Request,
+    aluno_id: int = Form(...), conceito: str = Form(...),
+    comentario: str = Form(""), db: Session = Depends(get_db)):
+    usuario = get_usuario_logado(request, db)
+    if not usuario:
+        return RedirectResponse(url="/", status_code=303)
+    equipe = db.query(Equipe).filter(Equipe.id == equipe_id).first()
+    if not equipe:
+        return RedirectResponse(url="/dashboard", status_code=303)
+    if usuario.tipo not in ("ADMIN",):
+        if usuario.tipo != "PROFESSOR" or not _professor_da_tematica(db, usuario.id, equipe.tematica_id):
+            return RedirectResponse(url=f"/equipes/{equipe_id}?erro=Apenas+o+professor+responsável+pode+avaliar+alunos", status_code=303)
+    if conceito not in CONCEITOS:
+        return RedirectResponse(url=f"/equipes/{equipe_id}?erro=Conceito+inválido", status_code=303)
+    existente = db.query(AvaliacaoAluno).filter(
+        AvaliacaoAluno.equipe_id == equipe_id,
+        AvaliacaoAluno.aluno_id == aluno_id,
+        AvaliacaoAluno.professor_id == usuario.id,
+    ).first()
+    if existente:
+        existente.conceito = conceito; existente.comentario = comentario
+        existente.data_avaliacao = datetime.now(timezone.utc)
+    else:
+        db.add(AvaliacaoAluno(
+            equipe_id=equipe_id, aluno_id=aluno_id, professor_id=usuario.id,
+            conceito=conceito, comentario=comentario,
+        ))
+    db.commit()
+    return RedirectResponse(url=f"/equipes/{equipe_id}?sucesso=Avaliação+individual+registrada", status_code=303)
+
+
 # ── Portfólio ─────────────────────────────────────────────────────────────────
 
 @app.get("/portfolio", response_class=HTMLResponse)
-def portfolio_view(request: Request, busca: str = "", filtro_turma: str = "", filtro_semestre: str = "", db: Session = Depends(get_db)):
+def portfolio_view(request: Request, busca: str = "", filtro_turma: str = "",
+                   filtro_semestre: str = "", filtro_stack: str = "", db: Session = Depends(get_db)):
     usuario = get_usuario_logado(request, db)
     if not usuario:
         return RedirectResponse(url="/", status_code=303)
@@ -721,12 +816,29 @@ def portfolio_view(request: Request, busca: str = "", filtro_turma: str = "", fi
     if busca:
         query = query.filter(Tematica.titulo.ilike(f"%{busca}%") | Equipe.nome.ilike(f"%{busca}%"))
     equipes = query.order_by(Equipe.criado_em.desc()).all()
+    # Filtro de stack (pós-query, pois tecnologias ficam nas entregas)
+    if filtro_stack:
+        filtro_lower = filtro_stack.lower()
+        equipes = [
+            e for e in equipes
+            if any(filtro_lower in tag.strip().lower()
+                   for ent in e.entregas
+                   for tag in ent.tecnologias.split(',') if tag.strip())
+        ]
+    # Todas as stacks únicas para o select de filtro
+    todas_stacks = sorted({
+        tag.strip()
+        for eq in db.query(Equipe).join(Tematica).join(Turma).all()
+        for ent in eq.entregas
+        for tag in ent.tecnologias.split(',') if tag.strip()
+    })
     turmas = db.query(Turma).filter(Turma.ativa == True).order_by(Turma.nome).all()
     semestres = [r[0] for r in db.query(Turma.semestre).distinct().all() if r[0]]
     return templates.TemplateResponse("portfolio.html", {
         "request": request, "usuario": usuario, "equipes": equipes,
-        "turmas": turmas, "semestres": semestres,
-        "busca": busca, "filtro_turma": filtro_turma, "filtro_semestre": filtro_semestre,
+        "turmas": turmas, "semestres": semestres, "todas_stacks": todas_stacks,
+        "busca": busca, "filtro_turma": filtro_turma,
+        "filtro_semestre": filtro_semestre, "filtro_stack": filtro_stack,
         "conceito_label": CONCEITO_LABEL,
         "active_page": "portfolio",
     })
