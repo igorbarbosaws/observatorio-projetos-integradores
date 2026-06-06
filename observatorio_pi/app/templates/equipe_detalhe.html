@@ -206,18 +206,18 @@
                 <form method="post" action="/equipes/{{ equipe.id }}/avaliar">
                     <div class="row g-3 mb-4">
                         {% set criterios = [
-                            ('conceito_conteudo',     'Conteúdo / Relevância',       'bi-book',              ja_avaliou.conceito_conteudo     if ja_avaliou else 'BOM'),
-                            ('conceito_tecnica',      'Qualidade Técnica',           'bi-code-slash',        ja_avaliou.conceito_tecnica      if ja_avaliou else 'BOM'),
-                            ('conceito_apresentacao', 'Apresentação / Documentação', 'bi-file-earmark-text', ja_avaliou.conceito_apresentacao if ja_avaliou else 'BOM'),
-                            ('conceito_inovacao',     'Inovação / Criatividade',     'bi-lightbulb',         ja_avaliou.conceito_inovacao     if ja_avaliou else 'BOM'),
-                            ('conceito_equipe',       'Trabalho em Equipe',          'bi-people',            ja_avaliou.conceito_equipe       if ja_avaliou else 'BOM'),
+                            ('conceito_conteudo',     'Conteúdo / Relevância',       'bi-book'),
+                            ('conceito_tecnica',      'Qualidade Técnica',           'bi-code-slash'),
+                            ('conceito_apresentacao', 'Apresentação / Documentação', 'bi-file-earmark-text'),
+                            ('conceito_inovacao',     'Inovação / Criatividade',     'bi-lightbulb'),
+                            ('conceito_equipe',       'Trabalho em Equipe',          'bi-people'),
                         ] %}
-                        {% for campo, label, icone, valor in criterios %}
+                        {% for campo, label, icone in criterios %}
                         <div class="col-sm-6">
                             <label class="form-label fw-semibold" style="font-size:.82rem;color:#374151;"><i class="bi {{ icone }} me-1" style="color:var(--senac-blue);"></i>{{ label }}</label>
                             <div class="d-flex gap-1 flex-wrap">
                                 {% for c in conceitos %}
-                                <input type="radio" class="btn-check" name="{{ campo }}" id="{{ campo }}_{{ c }}" value="{{ c }}" {% if valor == c %}checked{% endif %} required>
+                                <input type="radio" class="btn-check" name="{{ campo }}" id="{{ campo }}_{{ c }}" value="{{ c }}" {% if avaliacao and avaliacao[campo] == c %}checked{% elif not avaliacao and c == 'BOM' %}checked{% endif %} required>
                                 <label class="btn btn-sm" for="{{ campo }}_{{ c }}"
                                        style="border-radius:20px;font-size:.72rem;font-weight:600;
                                        {% if c=='INSUFICIENTE' %}background:#fef2f2;color:#991b1b;border:1px solid #fecaca;
@@ -235,7 +235,7 @@
                             <label class="form-label fw-semibold" style="font-size:.82rem;color:#374151;"><i class="bi bi-award me-1" style="color:var(--senac-orange);"></i>Conceito Final</label>
                             <div class="d-flex gap-2 flex-wrap">
                                 {% for c in conceitos %}
-                                <input type="radio" class="btn-check" name="conceito_final" id="final_{{ c }}" value="{{ c }}" {% if (ja_avaliou.conceito_final if ja_avaliou else 'BOM') == c %}checked{% endif %} required>
+                                <input type="radio" class="btn-check" name="conceito_final" id="final_{{ c }}" value="{{ c }}" {% if avaliacao and avaliacao.conceito_final == c %}checked{% elif not avaliacao and c == 'BOM' %}checked{% endif %} required>
                                 <label class="btn btn-sm fw-bold px-3" for="final_{{ c }}"
                                        style="border-radius:20px;font-size:.78rem;
                                        {% if c=='INSUFICIENTE' %}background:#fef2f2;color:#991b1b;border:2px solid #fecaca;
