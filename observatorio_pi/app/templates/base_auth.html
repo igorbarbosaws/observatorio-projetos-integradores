@@ -1,92 +1,446 @@
 {% extends "base.html" %}
 
+{# ── Macro: avatar do usuário ──────────────────────────────────────────────── #}
+{% macro avatar(u, size=32) %}
+{% if u.foto_perfil %}
+<img src="/static/{{ u.foto_perfil }}"
+     style="width:{{ size }}px;height:{{ size }}px;border-radius:50%;object-fit:cover;flex-shrink:0;"
+     alt="{{ u.nome }}">
+{% else %}
+{% set cores_avatar = ['#0D5EA5','#7c3aed','#d97706','#065f46','#991b1b','#1d4ed8','#92400e','#166534'] %}
+{% set cor = cores_avatar[(u.nome|length) % (cores_avatar|length)] %}
+<div class="d-flex align-items-center justify-content-center fw-bold flex-shrink-0"
+     style="width:{{ size }}px;height:{{ size }}px;border-radius:50%;background:{{ cor }};
+            color:#fff;font-size:{{ (size * 0.4)|int }}px;">
+    {{ u.nome[0].upper() }}{% if u.nome.split()|length > 1 %}{{ u.nome.split()[1][0].upper() }}{% endif %}
+</div>
+{% endif %}
+{% endmacro %}
+
 {% block body %}
+<style>
+/* ── Sidebar retrátil ─────────────────────────────────────────────────────── */
+:root {
+    --sidebar-expanded: 220px;
+    --sidebar-collapsed: 56px;
+}
+
+/* Estado expandido */
+.sidebar {
+    width: var(--sidebar-expanded);
+    min-width: var(--sidebar-expanded);
+    max-width: var(--sidebar-expanded);
+    transition: width 240ms ease, min-width 240ms ease, max-width 240ms ease;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+/* Estado retraído — zera qualquer padding do container */
+.sidebar.collapsed {
+    width: var(--sidebar-collapsed) !important;
+    min-width: var(--sidebar-collapsed) !important;
+    max-width: var(--sidebar-collapsed) !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+
+/* Textos e labels somem quando retraído */
+.sidebar.collapsed .nav-link-text,
+.sidebar.collapsed .sidebar-section-label span {
+    display: none !important;
+}
+
+/* Lista sem padding lateral quando retraída */
+.sidebar.collapsed ul.nav {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+
+/* Padding lateral das listas quando expandida */
+.sidebar:not(.collapsed) ul.nav {
+    padding-left: 4px;
+    padding-right: 4px;
+}
+
+/* Label de seção vira divisor simples */
+.sidebar.collapsed .sidebar-section-label {
+    padding: .4rem 0;
+    margin: 0;
+    border-top: 1px solid #e4eaf2;
+}
+
+/* Links: caixa centralizada, sem margens laterais, ícone no centro */
+.sidebar.collapsed .nav-link {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    width: var(--sidebar-collapsed) !important;
+    padding: .6rem 0 !important;
+    margin: 1px 0 !important;
+    border-radius: 0 !important;
+    position: relative;
+}
+
+/* Destaque visual de active/hover ainda arredondado internamente */
+.sidebar.collapsed .nav-link:hover,
+.sidebar.collapsed .nav-link.active {
+    border-radius: 10px !important;
+    margin: 1px 6px !important;
+    width: calc(var(--sidebar-collapsed) - 12px) !important;
+}
+
+/* Ícone: sem largura fixa, sem margem lateral */
+.sidebar.collapsed .nav-link i {
+    margin: 0 !important;
+    font-size: 1.2rem !important;
+    width: auto !important;
+    flex-shrink: 0;
+}
+
+/* Tooltip ao passar o mouse */
+.sidebar.collapsed .nav-link[title]:hover::after {
+    content: attr(title);
+    position: absolute;
+    left: calc(var(--sidebar-collapsed) + 4px);
+    top: 50%;
+    transform: translateY(-50%);
+    background: #1a1a2e;
+    color: #fff;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: .74rem;
+    white-space: nowrap;
+    z-index: 9999;
+    pointer-events: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,.2);
+}
+
+/* Conteúdo principal ocupa o espaço restante */
+.main-content {
+    flex: 1;
+    min-width: 0;
+    transition: none;
+}
+
+/* ── FAB ──────────────────────────────────────────────────────────────────── */
+#fabContainer {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 1050;
+    display: flex;
+    flex-direction: column-reverse;
+    align-items: flex-end;
+    gap: 8px;
+}
+#fabBtn {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: var(--senac-orange);
+    color: #fff;
+    border: none;
+    box-shadow: 0 4px 16px rgba(240,138,0,.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.35rem;
+    cursor: pointer;
+    transition: background .15s, transform .15s, box-shadow .15s;
+    flex-shrink: 0;
+}
+#fabBtn:hover {
+    background: var(--senac-orange-dark);
+    transform: scale(1.08);
+    box-shadow: 0 6px 20px rgba(240,138,0,.55);
+}
+#fabBtn.open {
+    background: #374151;
+    box-shadow: 0 4px 16px rgba(0,0,0,.3);
+    transform: rotate(45deg);
+}
+#fabMenu {
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-end;
+}
+.fab-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #fff;
+    border: 1px solid #e4eaf2;
+    border-radius: 24px;
+    padding: 8px 16px 8px 10px;
+    text-decoration: none;
+    color: #1a1a2e;
+    font-size: .82rem;
+    font-weight: 600;
+    box-shadow: 0 2px 10px rgba(0,0,0,.10);
+    white-space: nowrap;
+    transition: box-shadow .15s, transform .1s, background .1s;
+}
+.fab-item:hover {
+    box-shadow: 0 4px 16px rgba(13,94,165,.18);
+    transform: translateX(-3px);
+    color: var(--senac-blue);
+    background: #f0f7ff;
+}
+.fab-item-icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: var(--senac-blue);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .9rem;
+    flex-shrink: 0;
+}
+</style>
+
+<!-- Navbar superior -->
 <nav class="navbar navbar-senac navbar-expand-lg">
-    <div class="container-fluid px-4">
+    <div class="container-fluid px-3">
+        <!-- Botão hamburger -->
+        <button id="sidebarToggle"
+                class="btn btn-sm d-none d-md-flex align-items-center justify-content-center me-2"
+                title="Expandir/recolher menu"
+                style="background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.22);
+                       border-radius:8px;width:36px;height:36px;flex-shrink:0;">
+            <i class="bi bi-layout-sidebar" style="font-size:1rem;"></i>
+        </button>
+
         <a class="navbar-brand d-flex align-items-center gap-2" href="/dashboard">
-            <div style="background:var(--senac-orange);border-radius:6px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;">
+            <div style="background:var(--senac-orange);border-radius:6px;width:30px;height:30px;
+                        display:flex;align-items:center;justify-content:center;">
                 <i class="bi bi-mortarboard-fill text-white" style="font-size:.95rem;"></i>
             </div>
             <span>Observatório <span class="brand-dot">PI</span></span>
         </a>
+
         <div class="ms-auto d-flex align-items-center gap-3">
-            <span class="text-white-50 small d-none d-sm-flex align-items-center gap-2">
-                <span style="width:28px;height:28px;background:rgba(255,255,255,.15);border-radius:50%;display:flex;align-items:center;justify-content:center;">
-                    <i class="bi bi-person-fill text-white"></i>
-                </span>
+            <a href="{{ url_perfil(usuario) }}"
+               class="text-decoration-none d-none d-sm-flex align-items-center gap-2"
+               title="Meu perfil">
+                {{ avatar(usuario, 30) }}
                 <div class="text-end">
                     <div class="text-white small fw-semibold lh-1">{{ usuario.nome }}</div>
-                    <div class="text-white-50" style="font-size:.68rem;">
-                        {{ usuario.email[:30] }}{% if usuario.email|length > 30 %}…{% endif %}
+                    <div class="text-white-50" style="font-size:.65rem;">
+                        {{ usuario.email[:28] }}{% if usuario.email|length > 28 %}…{% endif %}
                     </div>
                 </div>
-                <span class="badge rounded-pill" style="background:var(--senac-orange);font-size:.68rem;font-weight:700;">{{ usuario.tipo }}</span>
-            </span>
+                <span class="badge rounded-pill"
+                      style="background:var(--senac-orange);font-size:.65rem;font-weight:700;letter-spacing:.02em;">
+                    {{ usuario.tipo }}
+                </span>
+            </a>
             <a href="/logout" class="btn btn-sm d-flex align-items-center gap-1"
-               style="background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:8px;">
-                <i class="bi bi-box-arrow-right"></i><span class="d-none d-sm-inline">Sair</span>
+               style="background:rgba(255,255,255,.12);color:#fff;
+                      border:1px solid rgba(255,255,255,.25);border-radius:8px;">
+                <i class="bi bi-box-arrow-right"></i>
+                <span class="d-none d-sm-inline">Sair</span>
             </a>
         </div>
     </div>
 </nav>
 
-<div class="container-fluid g-0">
-    <div class="row g-0">
-        <nav class="col-md-2 d-none d-md-block sidebar">
-            <div class="sidebar-section-label">Menu</div>
-            <ul class="nav flex-column px-2">
-                <li class="nav-item">
-                    <a class="nav-link {% if active_page == 'dashboard' %}active{% endif %}" href="/dashboard">
-                        <i class="bi bi-speedometer2 me-2"></i>Dashboard
-                    </a>
-                </li>
-                {% if usuario.tipo in ('ADMIN','COORDENADOR') %}
-                <li class="nav-item">
-                    <a class="nav-link {% if active_page == 'turmas' %}active{% endif %}" href="/turmas">
-                        <i class="bi bi-building me-2"></i>Turmas
-                    </a>
-                </li>
-                {% endif %}
-                <li class="nav-item">
-                    <a class="nav-link {% if active_page == 'tematicas' %}active{% endif %}" href="/tematicas">
-                        <i class="bi bi-lightbulb me-2"></i>
-                        {% if usuario.tipo == 'ALUNO' %}Minhas Temáticas{% else %}Temáticas{% endif %}
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link {% if active_page == 'portfolio' %}active{% endif %}" href="/portfolio">
-                        <i class="bi bi-grid-3x3-gap me-2"></i>Portfólio
-                    </a>
-                </li>
-                {% if usuario.tipo == 'ALUNO' %}
-                <li class="nav-item">
-                    <a class="nav-link {% if active_page == 'perfil' %}active{% endif %}" href="/meu-perfil">
-                        <i class="bi bi-person-badge me-2"></i>Meu Perfil
-                    </a>
-                </li>
-                {% endif %}
-            </ul>
+<!-- Layout principal -->
+<div class="d-flex" style="min-height:calc(100vh - 60px);">
+
+    <!-- Sidebar -->
+    <nav class="d-none d-md-flex flex-column sidebar collapsed" id="mainSidebar"
+         style="background:#fff;border-right:1px solid #e4eaf2;padding-top:.75rem;">
+
+        <!-- Seção Menu -->
+        <div class="sidebar-section-label">
+            <span class="nav-link-text">Menu</span>
+        </div>
+        <ul class="nav flex-column px-1 mb-1">
+            <li class="nav-item">
+                <a class="nav-link {% if active_page == 'dashboard' %}active{% endif %}"
+                   href="/dashboard" title="Dashboard">
+                    <i class="bi bi-speedometer2 me-2"></i>
+                    <span class="nav-link-text">Dashboard</span>
+                </a>
+            </li>
             {% if usuario.tipo in ('ADMIN','COORDENADOR') %}
-            <div class="sidebar-section-label mt-2">Administração</div>
-            <ul class="nav flex-column px-2">
-                {% if usuario.tipo == 'ADMIN' %}
-                <li class="nav-item">
-                    <a class="nav-link {% if active_page == 'usuarios' %}active{% endif %}" href="/usuarios">
-                        <i class="bi bi-people me-2"></i>Usuários
-                    </a>
-                </li>
-                {% endif %}
-                <li class="nav-item">
-                    <a class="nav-link {% if active_page == 'relatorios' %}active{% endif %}" href="/relatorios">
-                        <i class="bi bi-bar-chart-line me-2"></i>Relatórios
-                    </a>
-                </li>
-            </ul>
+            <li class="nav-item">
+                <a class="nav-link {% if active_page == 'turmas' %}active{% endif %}"
+                   href="/turmas" title="Turmas">
+                    <i class="bi bi-mortarboard me-2"></i>
+                    <span class="nav-link-text">Turmas</span>
+                </a>
+            </li>
             {% endif %}
-        </nav>
-        <main class="col-md-10 main-content" style="min-height:calc(100vh - 60px);">
-            {% block content %}{% endblock %}
-        </main>
+            <li class="nav-item">
+                <a class="nav-link {% if active_page == 'tematicas' %}active{% endif %}"
+                   href="/tematicas"
+                   title="{% if usuario.tipo == 'ALUNO' %}Minhas Temáticas{% else %}Temáticas{% endif %}">
+                    <i class="bi bi-lightbulb me-2"></i>
+                    <span class="nav-link-text">
+                        {% if usuario.tipo == 'ALUNO' %}Minhas Temáticas{% else %}Temáticas{% endif %}
+                    </span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if active_page == 'portfolio' %}active{% endif %}"
+                   href="/portfolio" title="Portfólio">
+                    <i class="bi bi-collection me-2"></i>
+                    <span class="nav-link-text">Portfólio</span>
+                </a>
+            </li>
+        </ul>
+
+        {% if usuario.tipo in ('ADMIN','COORDENADOR') %}
+        <!-- Seção Administração -->
+        <div class="sidebar-section-label mt-1">
+            <span class="nav-link-text">Administração</span>
+        </div>
+        <ul class="nav flex-column px-1 mb-1">
+            {% if usuario.tipo == 'ADMIN' %}
+            <li class="nav-item">
+                <a class="nav-link {% if active_page == 'usuarios' %}active{% endif %}"
+                   href="/usuarios" title="Usuários">
+                    <i class="bi bi-people me-2"></i>
+                    <span class="nav-link-text">Usuários</span>
+                </a>
+            </li>
+            {% endif %}
+            <li class="nav-item">
+                <a class="nav-link {% if active_page == 'relatorios' %}active{% endif %}"
+                   href="/relatorios" title="Relatórios">
+                    <i class="bi bi-bar-chart-line me-2"></i>
+                    <span class="nav-link-text">Relatórios</span>
+                </a>
+            </li>
+        </ul>
+        {% endif %}
+    </nav>
+
+    <!-- Conteúdo principal -->
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+</div>
+
+<!-- FAB — Ações rápidas -->
+<div id="fabContainer">
+    <button id="fabBtn" title="Ações rápidas">
+        <i class="bi bi-lightning-charge-fill" id="fabIcon"></i>
+    </button>
+    <div id="fabMenu">
+        {% if usuario.tipo == 'ALUNO' %}
+        <a class="fab-item" href="/tematicas">
+            <div class="fab-item-icon"><i class="bi bi-lightbulb"></i></div>Temáticas
+        </a>
+        <a class="fab-item" href="/portfolio">
+            <div class="fab-item-icon"><i class="bi bi-collection"></i></div>Portfólio
+        </a>
+        <a class="fab-item" href="{{ url_perfil(usuario) }}">
+            <div class="fab-item-icon"><i class="bi bi-person-circle"></i></div>Meu perfil
+        </a>
+        {% elif usuario.tipo == 'PROFESSOR' %}
+        <a class="fab-item" href="/tematicas">
+            <div class="fab-item-icon"><i class="bi bi-lightbulb"></i></div>Minhas temáticas
+        </a>
+        <a class="fab-item" href="{{ url_perfil(usuario) }}">
+            <div class="fab-item-icon"><i class="bi bi-person-circle"></i></div>Meu perfil
+        </a>
+        <a class="fab-item" href="/portfolio">
+            <div class="fab-item-icon"><i class="bi bi-collection"></i></div>Portfólio
+        </a>
+        {% elif usuario.tipo == 'COORDENADOR' %}
+        <a class="fab-item" href="/turmas/nova">
+            <div class="fab-item-icon"><i class="bi bi-mortarboard"></i></div>Nova turma
+        </a>
+        <a class="fab-item" href="/tematicas/nova">
+            <div class="fab-item-icon"><i class="bi bi-lightbulb"></i></div>Nova temática
+        </a>
+        <a class="fab-item" href="/relatorios">
+            <div class="fab-item-icon"><i class="bi bi-bar-chart-line"></i></div>Relatórios
+        </a>
+        {% elif usuario.tipo == 'ADMIN' %}
+        <a class="fab-item" href="/usuarios/novo">
+            <div class="fab-item-icon"><i class="bi bi-person-plus"></i></div>Novo usuário
+        </a>
+        <a class="fab-item" href="/turmas/nova">
+            <div class="fab-item-icon"><i class="bi bi-mortarboard"></i></div>Nova turma
+        </a>
+        <a class="fab-item" href="/tematicas/nova">
+            <div class="fab-item-icon"><i class="bi bi-lightbulb"></i></div>Nova temática
+        </a>
+        <a class="fab-item" href="/relatorios">
+            <div class="fab-item-icon"><i class="bi bi-bar-chart-line"></i></div>Relatórios
+        </a>
+        {% elif usuario.tipo == 'EMPRESA' %}
+        <a class="fab-item" href="/portfolio">
+            <div class="fab-item-icon"><i class="bi bi-collection"></i></div>Portfólio
+        </a>
+        {% endif %}
     </div>
 </div>
+
+<script>
+// ── Sidebar retrátil — começa collapsed por padrão ────────────────────────────
+(function () {
+    var sidebar = document.getElementById('mainSidebar');
+    var btn     = document.getElementById('sidebarToggle');
+    if (!sidebar || !btn) return;
+    var KEY = 'opi_sidebar_collapsed';
+
+    function applyState(collapsed) {
+        sidebar.classList.toggle('collapsed', collapsed);
+        try { localStorage.setItem(KEY, collapsed ? '1' : '0'); } catch(e) {}
+    }
+
+    // Lê estado salvo; se não houver nada salvo, padrão é collapsed (true)
+    var saved = true; // padrão: retraída
+    try {
+        var stored = localStorage.getItem(KEY);
+        if (stored !== null) { saved = stored === '1'; }
+    } catch(e) {}
+    applyState(saved);
+
+    btn.addEventListener('click', function () {
+        applyState(!sidebar.classList.contains('collapsed'));
+    });
+})();
+
+// ── FAB ───────────────────────────────────────────────────────────────────────
+(function () {
+    var fabBtn  = document.getElementById('fabBtn');
+    var fabMenu = document.getElementById('fabMenu');
+    var fabIcon = document.getElementById('fabIcon');
+    if (!fabBtn) return;
+
+    function openMenu() {
+        fabMenu.style.display = 'flex';
+        fabBtn.classList.add('open');
+        fabIcon.className = 'bi bi-x-lg';
+    }
+    function closeMenu() {
+        fabMenu.style.display = 'none';
+        fabBtn.classList.remove('open');
+        fabIcon.className = 'bi bi-lightning-charge-fill';
+    }
+
+    fabBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        if (fabMenu.style.display === 'flex') { closeMenu(); } else { openMenu(); }
+    });
+
+    document.addEventListener('click', function (e) {
+        if (!document.getElementById('fabContainer').contains(e.target)) {
+            closeMenu();
+        }
+    });
+})();
+</script>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+{% block scripts %}{% endblock %}
 {% endblock %}

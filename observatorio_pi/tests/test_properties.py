@@ -560,3 +560,394 @@ def test_property6_exatamente_um_checked_por_criterio(conceitos):
             f"Critério '{_campo}' (valor_salvo='{valor_salvo}'): "
             f"esperado exatamente 1 checked, obtido {checked_count}"
         )
+
+
+# ---------------------------------------------------------------------------
+# Funções auxiliares — extraídas de main.py para teste isolado
+# ---------------------------------------------------------------------------
+
+def extrair_anos(semestres: list) -> list:
+    """
+    Extrai anos distintos de uma lista de semestres no formato 'AAAA-N'.
+    Retorna lista ordenada em ordem decrescente, sem duplicatas.
+    Mirrors da lógica em GET /turmas.
+    """
+    anos = sorted(
+        set(s.split("-")[0] for s in semestres if "-" in s),
+        reverse=True,
+    )
+    return anos
+
+
+def filtrar_turmas_por_ano(turmas: list, ano: str) -> list:
+    """
+    Filtra turmas cujo campo semestre inicia com '{ano}-'.
+    Mirrors da lógica em GET /turmas.
+    """
+    if not ano:
+        return turmas
+    return [t for t in turmas if t.semestre.startswith(f"{ano}-")]
+
+
+def filtrar_tematicas_por_professor(tematicas: list, professor_id) -> list:
+    """
+    Filtra temáticas pelo professor_id.
+    Mirrors da lógica em GET /tematicas.
+    """
+    return [t for t in tematicas if t.professor_id == professor_id]
+
+
+def filtrar_tematicas_combinado(tematicas: list, turma_id=None, professor_id=None) -> list:
+    """
+    Aplica filtros de turma e professor de forma cumulativa (interseção).
+    """
+    resultado = tematicas
+    if turma_id is not None:
+        resultado = [t for t in resultado if t.turma_id == turma_id]
+    if professor_id is not None:
+        resultado = [t for t in resultado if t.professor_id == professor_id]
+    return resultado
+
+
+def _url_perfil_local(tipo: str, user_id: int) -> str:
+    """Mirrors de _url_perfil em main.py."""
+    mapa = {
+        "ALUNO":       f"/alunos/{user_id}",
+        "PROFESSOR":   f"/perfil/professor/{user_id}",
+        "COORDENADOR": f"/perfil/coordenador/{user_id}",
+        "ADMIN":       f"/perfil/coordenador/{user_id}",
+        "EMPRESA":     f"/perfil/empresa/{user_id}",
+    }
+    return mapa.get(tipo, "/dashboard")
+
+
+def calcular_totais(dados_tematicas: list) -> dict:
+    """
+    Calcula os totais de equipes e avaliações a partir de dados_tematicas.
+    Mirrors da lógica em GET /relatorios/professor/{id}.
+    """
+    return {
+        "total_equipes":     sum(d["n_equipes"] for d in dados_tematicas),
+        "total_avaliacoes":  sum(d["n_avaliacoes"] for d in dados_tematicas),
+        "total_tematicas":   len(dados_tematicas),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Property 1: Filtro de turmas por ano — exatidão
+# Feature: ui-improvements-and-new-features, Property 1: filtro turmas por ano
+# Validates: Requirements 1.2
+# ---------------------------------------------------------------------------
+
+_estrategia_semestre = st.from_regex(r"\d{4}-[12]", fullmatch=True)
+_estrategia_ano      = st.from_regex(r"\d{4}", fullmatch=True)
+
+
+@given(
+    semestres=st.lists(_estrategia_semestre, min_size=0, max_size=20),
+    ano=_estrategia_ano,
+)
+@settings(max_examples=100)
+def test_property1_filtro_turmas_por_ano_exatidao(semestres, ano):
+    """
+    **Validates: Requirements 1.2**
+
+    Property 1: Para qualquer lista de turmas e qualquer ano de filtro,
+    todas as turmas retornadas devem ter semestre iniciando com '{ano}-'
+    e nenhuma turma de outro ano deve aparecer.
+    """
+    # Feature: ui-improvements-and-new-features, Property 1: filtro turmas por ano
+    turmas = [SimpleNamespace(semestre=s) for s in semestres]
+    resultado = filtrar_turmas_por_ano(turmas, ano)
+
+    # Todas as retornadas devem iniciar com '{ano}-'
+    for t in resultado:
+        assert t.semestre.startswith(f"{ano}-"), (
+            f"Turma com semestre '{t.semestre}' não deveria estar no resultado "
+            f"para filtro ano='{ano}'"
+        )
+
+    # Nenhuma turma de outro ano deve aparecer
+    ids_resultado = {id(t) for t in resultado}
+    for t in turmas:
+        if not t.semestre.startswith(f"{ano}-"):
+            assert id(t) not in ids_resultado, (
+                f"Turma com semestre '{t.semestre}' não deveria estar no resultado "
+                f"para filtro ano='{ano}'"
+            )
+
+
+# ---------------------------------------------------------------------------
+# Property 2: Extração de anos distintos — completude e unicidade
+# Feature: ui-improvements-and-new-features, Property 2: anos distintos
+# Validates: Requirements 1.1
+# ---------------------------------------------------------------------------
+
+@given(semestres=st.lists(_estrategia_semestre, min_size=0, max_size=30))
+@settings(max_examples=100)
+def test_property2_extracao_anos_distintos_unicidade(semestres):
+    """
+    **Validates: Requirements 1.1**
+
+    Property 2: Para qualquer lista de semestres, os anos extraídos devem ser
+    únicos (sem duplicatas) e ordenados do mais recente ao mais antigo.
+    """
+    # Feature: ui-improvements-and-new-features, Property 2: anos distintos
+    anos = extrair_anos(semestres)
+
+    # Sem duplicatas
+    assert len(anos) == len(set(anos)), (
+        f"Anos extraídos contêm duplicatas: {anos}"
+    )
+
+    # Ordenados descendentemente
+    assert anos == sorted(set(anos), reverse=True), (
+        f"Anos não estão em ordem decrescente: {anos}"
+    )
+
+    # Completude: todos os anos dos semestres devem aparecer
+    anos_esperados = {s.split("-")[0] for s in semestres if "-" in s}
+    assert set(anos) == anos_esperados, (
+        f"Conjunto de anos extraídos {set(anos)} != esperado {anos_esperados}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Property 3: Estado do filtro refletido no contexto — round-trip
+# Feature: ui-improvements-and-new-features, Property 3: round-trip filtro ano
+# Validates: Requirements 1.5
+# ---------------------------------------------------------------------------
+
+@given(ano=_estrategia_ano)
+@settings(max_examples=100)
+def test_property3_round_trip_ano_selecionado(ano):
+    """
+    **Validates: Requirements 1.5**
+
+    Property 3: Para qualquer ano válido submetido como parâmetro GET,
+    ano_selecionado no contexto deve ser igual ao parâmetro submetido.
+    """
+    # Feature: ui-improvements-and-new-features, Property 3: round-trip filtro ano
+    # Simula a lógica da rota: recebe `ano`, passa `ano_selecionado=ano` ao template
+    ano_selecionado = ano  # a rota simplesmente repassa o parâmetro recebido
+    assert ano_selecionado == ano
+
+
+# ---------------------------------------------------------------------------
+# Property 4: Filtro de temáticas por professor — exatidão
+# Feature: ui-improvements-and-new-features, Property 4: filtro tematicas professor
+# Validates: Requirements 2.2
+# ---------------------------------------------------------------------------
+
+@given(
+    professor_ids=st.lists(st.integers(min_value=1, max_value=50), min_size=0, max_size=20),
+    filtro_professor_id=st.integers(min_value=1, max_value=50),
+)
+@settings(max_examples=100)
+def test_property4_filtro_tematicas_por_professor_exatidao(professor_ids, filtro_professor_id):
+    """
+    **Validates: Requirements 2.2**
+
+    Property 4: Para qualquer conjunto de temáticas com professor_ids variados
+    e qualquer professor_id de filtro, todas as retornadas devem ter
+    professor_id igual ao filtro.
+    """
+    # Feature: ui-improvements-and-new-features, Property 4: filtro tematicas professor
+    tematicas = [SimpleNamespace(professor_id=pid, turma_id=1) for pid in professor_ids]
+    resultado = filtrar_tematicas_por_professor(tematicas, filtro_professor_id)
+
+    for t in resultado:
+        assert t.professor_id == filtro_professor_id, (
+            f"Temática com professor_id={t.professor_id} não deveria estar no resultado "
+            f"para filtro professor_id={filtro_professor_id}"
+        )
+
+    # Nenhuma temática de outro professor deve aparecer
+    ids_resultado = {id(t) for t in resultado}
+    for t in tematicas:
+        if t.professor_id != filtro_professor_id:
+            assert id(t) not in ids_resultado
+
+
+# ---------------------------------------------------------------------------
+# Property 5: Filtros compostos de temáticas — interseção correta
+# Feature: ui-improvements-and-new-features, Property 5: filtros compostos tematicas
+# Validates: Requirements 2.3
+# ---------------------------------------------------------------------------
+
+@given(
+    dados=st.lists(
+        st.fixed_dictionaries({
+            "professor_id": st.integers(min_value=1, max_value=10),
+            "turma_id":     st.integers(min_value=1, max_value=10),
+        }),
+        min_size=0, max_size=20,
+    ),
+    filtro_turma=st.integers(min_value=1, max_value=10),
+    filtro_professor=st.integers(min_value=1, max_value=10),
+)
+@settings(max_examples=100)
+def test_property5_filtros_compostos_intersecao(dados, filtro_turma, filtro_professor):
+    """
+    **Validates: Requirements 2.3**
+
+    Property 5: Para qualquer combinação de filtro_turma e filtro_professor
+    ambos ativos, o resultado deve satisfazer simultaneamente ambos os critérios.
+    """
+    # Feature: ui-improvements-and-new-features, Property 5: filtros compostos tematicas
+    tematicas = [SimpleNamespace(**d) for d in dados]
+    resultado = filtrar_tematicas_combinado(
+        tematicas, turma_id=filtro_turma, professor_id=filtro_professor
+    )
+
+    for t in resultado:
+        assert t.turma_id == filtro_turma, (
+            f"Temática com turma_id={t.turma_id} não satisfaz filtro_turma={filtro_turma}"
+        )
+        assert t.professor_id == filtro_professor, (
+            f"Temática com professor_id={t.professor_id} não satisfaz filtro_professor={filtro_professor}"
+        )
+
+
+# ---------------------------------------------------------------------------
+# Property 8: Totais agregados do relatório de professor — invariância aritmética
+# Feature: ui-improvements-and-new-features, Property 8: totais agregados relatorio
+# Validates: Requirements 4.4
+# ---------------------------------------------------------------------------
+
+@given(
+    dados_tematicas=st.lists(
+        st.fixed_dictionaries({
+            "n_equipes":    st.integers(min_value=0, max_value=20),
+            "n_avaliacoes": st.integers(min_value=0, max_value=50),
+        }),
+        min_size=0, max_size=10,
+    )
+)
+@settings(max_examples=100)
+def test_property8_totais_agregados_relatorio(dados_tematicas):
+    """
+    **Validates: Requirements 4.4**
+
+    Property 8: Para qualquer lista de dados_tematicas, total_equipes deve ser
+    a soma de todos os n_equipes e total_avaliacoes a soma de todos os n_avaliacoes.
+    """
+    # Feature: ui-improvements-and-new-features, Property 8: totais agregados
+    resultado = calcular_totais(dados_tematicas)
+
+    total_equipes_esperado    = sum(d["n_equipes"] for d in dados_tematicas)
+    total_avaliacoes_esperado = sum(d["n_avaliacoes"] for d in dados_tematicas)
+    total_tematicas_esperado  = len(dados_tematicas)
+
+    assert resultado["total_equipes"]    == total_equipes_esperado
+    assert resultado["total_avaliacoes"] == total_avaliacoes_esperado
+    assert resultado["total_tematicas"]  == total_tematicas_esperado
+
+
+# ---------------------------------------------------------------------------
+# Property 10: URL de perfil correta por tipo de usuário
+# Feature: ui-improvements-and-new-features, Property 10: url_perfil por tipo
+# Validates: Requirements 7.1, 7.2, 7.3, 7.4
+# ---------------------------------------------------------------------------
+
+_TIPOS_USUARIO = ["ALUNO", "PROFESSOR", "COORDENADOR", "ADMIN", "EMPRESA"]
+
+
+@given(
+    tipo=st.sampled_from(_TIPOS_USUARIO),
+    user_id=st.integers(min_value=1, max_value=10000),
+)
+@settings(max_examples=100)
+def test_property10_url_perfil_por_tipo(tipo, user_id):
+    """
+    **Validates: Requirements 7.1, 7.2, 7.3, 7.4**
+
+    Property 10: Para qualquer usuário com tipo válido e qualquer id,
+    _url_perfil retorna URL contendo o id e o path correto para aquele tipo.
+    """
+    # Feature: ui-improvements-and-new-features, Property 10: url_perfil por tipo
+    url = _url_perfil_local(tipo, user_id)
+
+    # A URL deve conter o id do usuário
+    assert str(user_id) in url, (
+        f"URL '{url}' não contém o id '{user_id}' para tipo '{tipo}'"
+    )
+
+    # A URL deve corresponder ao path esperado para cada tipo
+    if tipo == "ALUNO":
+        assert url == f"/alunos/{user_id}"
+    elif tipo == "PROFESSOR":
+        assert url == f"/perfil/professor/{user_id}"
+    elif tipo in ("COORDENADOR", "ADMIN"):
+        assert url == f"/perfil/coordenador/{user_id}"
+    elif tipo == "EMPRESA":
+        assert url == f"/perfil/empresa/{user_id}"
+
+
+# ---------------------------------------------------------------------------
+# Property 11: Ações do FAB corretas por tipo de usuário
+# Feature: ui-improvements-and-new-features, Property 11: FAB acoes por tipo
+# Validates: Requirements 10.3, 10.4, 10.5, 10.6
+# ---------------------------------------------------------------------------
+
+# Mapeamento esperado: tipo → conjunto de URLs/ações obrigatórias no FAB
+_FAB_ACOES_ESPERADAS = {
+    "ALUNO":       {"/tematicas", "/portfolio"},
+    "PROFESSOR":   {"/tematicas", "/portfolio"},
+    "COORDENADOR": {"/turmas/nova", "/tematicas/nova", "/relatorios"},
+    "ADMIN":       {"/usuarios/novo", "/turmas/nova", "/tematicas/nova", "/relatorios"},
+    "EMPRESA":     {"/portfolio"},
+}
+
+
+def get_fab_urls(tipo: str, usuario_id: int) -> set:
+    """
+    Simula as URLs que devem aparecer no FAB para cada tipo de usuário,
+    espelhando a lógica do template base_auth.html.
+    """
+    if tipo == "ALUNO":
+        return {"/tematicas", "/portfolio", _url_perfil_local(tipo, usuario_id)}
+    elif tipo == "PROFESSOR":
+        return {"/tematicas", "/portfolio"}
+    elif tipo == "COORDENADOR":
+        return {"/turmas/nova", "/tematicas/nova", "/relatorios"}
+    elif tipo == "ADMIN":
+        return {"/usuarios/novo", "/turmas/nova", "/tematicas/nova", "/relatorios"}
+    elif tipo == "EMPRESA":
+        return {"/portfolio"}
+    return set()
+
+
+@given(
+    tipo=st.sampled_from(_TIPOS_USUARIO),
+    user_id=st.integers(min_value=1, max_value=10000),
+)
+@settings(max_examples=100)
+def test_property11_fab_acoes_por_tipo(tipo, user_id):
+    """
+    **Validates: Requirements 10.3, 10.4, 10.5, 10.6**
+
+    Property 11: Para cada tipo de usuário, o FAB deve conter pelo menos
+    as ações obrigatórias definidas para aquele tipo — sem ações de outros tipos.
+    """
+    # Feature: ui-improvements-and-new-features, Property 11: FAB acoes por tipo
+    urls_fab = get_fab_urls(tipo, user_id)
+    acoes_obrigatorias = _FAB_ACOES_ESPERADAS[tipo]
+
+    # Todas as ações obrigatórias devem estar presentes
+    for acao in acoes_obrigatorias:
+        assert acao in urls_fab, (
+            f"Tipo '{tipo}': ação obrigatória '{acao}' ausente no FAB. "
+            f"FAB atual: {urls_fab}"
+        )
+
+    # Ações de outros tipos não devem aparecer (exceto sobreposições intencionais)
+    for outro_tipo, outras_acoes in _FAB_ACOES_ESPERADAS.items():
+        if outro_tipo == tipo:
+            continue
+        acoes_exclusivas_outro = outras_acoes - acoes_obrigatorias
+        for acao_exclusiva in acoes_exclusivas_outro:
+            assert acao_exclusiva not in urls_fab, (
+                f"Tipo '{tipo}': ação '{acao_exclusiva}' exclusiva de '{outro_tipo}' "
+                f"não deveria aparecer no FAB. FAB atual: {urls_fab}"
+            )

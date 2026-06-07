@@ -8,6 +8,27 @@
 {% if sucesso %}<div class="alert alert-success alert-dismissible d-flex align-items-center gap-2 py-2 mb-4"><i class="bi bi-check-circle-fill flex-shrink-0"></i><span>{{ sucesso }}</span><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>{% endif %}
 {% if erro %}<div class="alert alert-danger alert-dismissible d-flex align-items-center gap-2 py-2 mb-4"><i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i><span>{{ erro }}</span><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>{% endif %}
 
+<!-- Filtro por ano -->
+{% if anos_disponiveis %}
+<div class="card p-3 mb-4">
+    <form method="get" action="/turmas" class="row g-2 align-items-end">
+        <div class="col-sm-4">
+            <label class="form-label fw-semibold mb-1" style="font-size:.82rem;color:#374151;">Filtrar por ano</label>
+            <select name="ano" class="form-select form-select-sm">
+                <option value="">Todos os anos</option>
+                {% for a in anos_disponiveis %}
+                <option value="{{ a }}" {% if ano_selecionado == a %}selected{% endif %}>{{ a }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-sm-3 d-flex gap-2">
+            <button type="submit" class="btn btn-primary btn-sm" style="border-radius:8px;"><i class="bi bi-funnel me-1"></i>Filtrar</button>
+            <a href="/turmas" class="btn btn-outline-secondary btn-sm" style="border-radius:8px;">Limpar</a>
+        </div>
+    </form>
+</div>
+{% endif %}
+
 <div class="card">
     <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
@@ -31,7 +52,9 @@
                     </td>
                 </tr>
                 {% else %}
-                <tr><td colspan="5" class="text-center py-5" style="color:#9aa5b4;"><i class="bi bi-building fs-2 d-block mb-2"></i>Nenhuma turma cadastrada</td></tr>
+                <tr><td colspan="5" class="text-center py-5" style="color:#9aa5b4;"><i class="bi bi-building fs-2 d-block mb-2"></i>
+                {% if ano_selecionado %}Nenhuma turma encontrada para o ano selecionado.{% else %}Nenhuma turma cadastrada{% endif %}
+                </td></tr>
                 {% endfor %}
             </tbody>
         </table>

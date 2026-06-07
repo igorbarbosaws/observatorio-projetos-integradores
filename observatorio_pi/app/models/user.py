@@ -21,3 +21,4 @@ class User(Base):
     area_interesse = Column(String, default="")      # ex: "Backend, IA, Mobile"
     cidade       = Column(String, default="")        # localização
     telefone     = Column(String, default="")        # contato para empresas
+    foto_perfil  = Column(String, nullable=True, default=None)  # caminho relativo em static/

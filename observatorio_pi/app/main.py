@@ -1,9 +1,10 @@
 import os
 from datetime import datetime, timezone
-from fastapi import FastAPI, Request, Form, Depends
+from fastapi import FastAPI, Request, Form, Depends, UploadFile, File
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from sqlalchemy.orm import Session
+from fastapi.staticfiles import StaticFiles
+from sqlalchemy.orm import Session, joinedload
 from typing import Optional, List
 
 from app.database import engine, Base, get_db
@@ -24,6 +25,14 @@ app.include_router(project_router.router)
 app.include_router(user_router.router)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Diretório de avatars
+AVATARS_DIR = os.path.join(BASE_DIR, "static", "avatars")
+os.makedirs(AVATARS_DIR, exist_ok=True)
+
+# Montar arquivos estáticos
+app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
+
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -39,6 +48,22 @@ def get_usuario_logado(request: Request, db: Session) -> Optional[User]:
     if not email:
         return None
     return db.query(User).filter(User.email == email, User.ativo == True).first()
+
+
+def _url_perfil(usuario: User) -> str:
+    """Retorna a URL de perfil correspondente ao tipo do usuário."""
+    mapa = {
+        "ALUNO":       f"/alunos/{usuario.id}",
+        "PROFESSOR":   f"/perfil/professor/{usuario.id}",
+        "COORDENADOR": f"/perfil/coordenador/{usuario.id}",
+        "ADMIN":       f"/perfil/coordenador/{usuario.id}",
+        "EMPRESA":     f"/perfil/empresa/{usuario.id}",
+    }
+    return mapa.get(usuario.tipo, "/dashboard")
+
+
+# Registrar url_perfil como global Jinja2
+templates.env.globals["url_perfil"] = _url_perfil
 
 
 def _equipes_do_aluno(db: Session, aluno_id: int) -> List[Equipe]:
@@ -128,9 +153,22 @@ def dashboard(request: Request, db: Session = Depends(get_db)):
 
     elif usuario.tipo == "ALUNO":
         equipes = _equipes_do_aluno(db, usuario.id)
+        tematica_ids_aluno = [e.tematica_id for e in equipes]
         ctx["total_equipes"]   = len(equipes)
-        ctx["total_tematicas"] = len(set(e.tematica_id for e in equipes))
-        ctx["equipes_recentes"] = equipes[:5]
+        ctx["total_tematicas"] = len(set(tematica_ids_aluno))
+        # Usar joinedload para carregar professor sem N+1
+        equipes_ids = [e.id for e in equipes]
+        if equipes_ids:
+            ctx["equipes_recentes"] = (
+                db.query(Equipe)
+                .options(joinedload(Equipe.tematica).joinedload(Tematica.professor))
+                .filter(Equipe.id.in_(equipes_ids))
+                .order_by(Equipe.criado_em.desc())
+                .limit(5)
+                .all()
+            )
+        else:
+            ctx["equipes_recentes"] = []
 
     elif usuario.tipo == "EMPRESA":
         ctx["total_tematicas"] = db.query(Tematica).count()
@@ -228,15 +266,24 @@ def deletar_usuario_view(user_id: int, request: Request, db: Session = Depends(g
 # ── Turmas ────────────────────────────────────────────────────────────────────
 
 @app.get("/turmas", response_class=HTMLResponse)
-def listar_turmas(request: Request, db: Session = Depends(get_db)):
+def listar_turmas(request: Request, ano: str = "", db: Session = Depends(get_db)):
     usuario = get_usuario_logado(request, db)
     if not usuario:
         return RedirectResponse(url="/", status_code=303)
     if usuario.tipo not in ("ADMIN", "COORDENADOR"):
         return RedirectResponse(url="/dashboard", status_code=303)
-    turmas = db.query(Turma).order_by(Turma.semestre.desc(), Turma.nome).all()
+    todas_turmas = db.query(Turma).all()
+    anos_disponiveis = sorted(
+        set(t.semestre.split("-")[0] for t in todas_turmas if "-" in t.semestre),
+        reverse=True,
+    )
+    query = db.query(Turma)
+    if ano:
+        query = query.filter(Turma.semestre.startswith(f"{ano}-"))
+    turmas = query.order_by(Turma.semestre.desc(), Turma.nome).all()
     return templates.TemplateResponse("turmas.html", {
         "request": request, "usuario": usuario, "turmas": turmas,
+        "anos_disponiveis": anos_disponiveis, "ano_selecionado": ano,
         "sucesso": request.query_params.get("sucesso"),
         "erro": request.query_params.get("erro"),
         "active_page": "turmas",
@@ -303,7 +350,7 @@ def deletar_turma(turma_id: int, request: Request, db: Session = Depends(get_db)
 # ── Temáticas ─────────────────────────────────────────────────────────────────
 
 @app.get("/tematicas", response_class=HTMLResponse)
-def listar_tematicas(request: Request, filtro_turma: str = "", db: Session = Depends(get_db)):
+def listar_tematicas(request: Request, filtro_turma: str = "", filtro_professor: str = "", db: Session = Depends(get_db)):
     usuario = get_usuario_logado(request, db)
     if not usuario:
         return RedirectResponse(url="/", status_code=303)
@@ -317,11 +364,10 @@ def listar_tematicas(request: Request, filtro_turma: str = "", db: Session = Dep
         if tematica_ids:
             query = query.filter(Tematica.id.in_(tematica_ids))
         else:
-            tematicas = []
-            turmas = []
             return templates.TemplateResponse("tematicas.html", {
                 "request": request, "usuario": usuario, "tematicas": [],
                 "turmas": [], "filtro_turma": filtro_turma,
+                "professores": [], "filtro_professor": "",
                 "sucesso": request.query_params.get("sucesso"),
                 "erro": request.query_params.get("erro"),
                 "active_page": "tematicas",
@@ -334,11 +380,24 @@ def listar_tematicas(request: Request, filtro_turma: str = "", db: Session = Dep
     if filtro_turma:
         query = query.filter(Tematica.turma_id == int(filtro_turma))
 
+    # Filtro por professor — apenas ADMIN/COORDENADOR
+    filtro_professor_aplicado = ""
+    if usuario.tipo in ("ADMIN", "COORDENADOR") and filtro_professor:
+        prof_id = int(filtro_professor) if filtro_professor.isdigit() else None
+        if prof_id:
+            prof_valido = db.query(User).filter(User.id == prof_id, User.tipo == "PROFESSOR").first()
+            if prof_valido:
+                query = query.filter(Tematica.professor_id == prof_id)
+                filtro_professor_aplicado = filtro_professor
+            # Se inválido, ignora silenciosamente
+
     tematicas = query.order_by(Tematica.criado_em.desc()).all()
     turmas = db.query(Turma).filter(Turma.ativa == True).order_by(Turma.nome).all()
+    professores = db.query(User).filter(User.tipo == "PROFESSOR", User.ativo == True).order_by(User.nome).all()
     return templates.TemplateResponse("tematicas.html", {
         "request": request, "usuario": usuario, "tematicas": tematicas,
         "turmas": turmas, "filtro_turma": filtro_turma,
+        "professores": professores, "filtro_professor": filtro_professor_aplicado,
         "sucesso": request.query_params.get("sucesso"),
         "erro": request.query_params.get("erro"),
         "active_page": "tematicas",
@@ -865,7 +924,7 @@ def relatorios_view(request: Request, db: Session = Depends(get_db)):
     for c, t in por_conceito:
         if c in por_conceito_dict:
             por_conceito_dict[c] = t
-    top_professores = (db.query(User.nome, func.count(Avaliacao.id).label("total"))
+    top_professores = (db.query(User.id, User.nome, func.count(Avaliacao.id).label("total"))
         .join(Avaliacao, Avaliacao.professor_id == User.id)
         .group_by(User.id).order_by(func.count(Avaliacao.id).desc()).limit(10).all())
     return templates.TemplateResponse("relatorios.html", {
@@ -875,6 +934,54 @@ def relatorios_view(request: Request, db: Session = Depends(get_db)):
         "por_turma": por_turma, "por_conceito": por_conceito_dict,
         "top_professores": top_professores,
         "conceitos": CONCEITOS, "conceito_label": CONCEITO_LABEL,
+        "active_page": "relatorios",
+    })
+
+
+# ── Relatório por professor ───────────────────────────────────────────────────
+
+@app.get("/relatorios/professor/{professor_id}", response_class=HTMLResponse)
+def relatorio_professor(professor_id: int, request: Request, db: Session = Depends(get_db)):
+    usuario = get_usuario_logado(request, db)
+    if not usuario:
+        return RedirectResponse(url="/", status_code=303)
+    if usuario.tipo not in ("ADMIN", "COORDENADOR"):
+        return RedirectResponse(url="/dashboard", status_code=303)
+
+    professor = db.query(User).filter(
+        User.id == professor_id, User.tipo == "PROFESSOR"
+    ).first()
+    if not professor:
+        return RedirectResponse(
+            url="/relatorios?erro=Professor+não+encontrado", status_code=303
+        )
+
+    tematicas = db.query(Tematica).filter(
+        Tematica.professor_id == professor_id
+    ).order_by(Tematica.criado_em.desc()).all()
+
+    dados_tematicas = []
+    total_equipes = 0
+    total_avaliacoes = 0
+    for t in tematicas:
+        n_equipes = len(t.equipes)
+        equipe_ids = [e.id for e in t.equipes]
+        n_avaliacoes = db.query(Avaliacao).filter(
+            Avaliacao.professor_id == professor_id,
+            Avaliacao.equipe_id.in_(equipe_ids)
+        ).count() if equipe_ids else 0
+        total_equipes += n_equipes
+        total_avaliacoes += n_avaliacoes
+        dados_tematicas.append({
+            "tematica": t, "n_equipes": n_equipes, "n_avaliacoes": n_avaliacoes
+        })
+
+    return templates.TemplateResponse("relatorio_professor.html", {
+        "request": request, "usuario": usuario, "professor": professor,
+        "dados_tematicas": dados_tematicas,
+        "total_tematicas": len(tematicas),
+        "total_equipes": total_equipes,
+        "total_avaliacoes": total_avaliacoes,
         "active_page": "relatorios",
     })
 
@@ -939,3 +1046,168 @@ def perfil_publico_aluno(aluno_id: int, request: Request, db: Session = Depends(
         "active_page": "portfolio",
         "sucesso": request.query_params.get("sucesso"),
     })
+
+
+# ── Upload de foto de perfil ──────────────────────────────────────────────────
+
+ALLOWED_MIME = {"image/jpeg", "image/png", "image/webp"}
+MAX_SIZE_BYTES = 2 * 1024 * 1024  # 2 MB
+
+
+@app.post("/meu-perfil/foto", response_class=HTMLResponse)
+async def upload_foto_perfil(
+    request: Request,
+    foto: UploadFile = File(...),
+    db: Session = Depends(get_db),
+):
+    usuario = get_usuario_logado(request, db)
+    if not usuario:
+        return RedirectResponse(url="/", status_code=303)
+
+    redirect_url = _url_perfil(usuario)
+
+    # Validar tipo MIME
+    if foto.content_type not in ALLOWED_MIME:
+        return RedirectResponse(
+            url=f"{redirect_url}?erro=Arquivo+inválido.+Envie+uma+imagem+JPEG%2C+PNG+ou+WebP+com+até+2+MB",
+            status_code=303,
+        )
+
+    # Ler conteúdo e validar tamanho
+    conteudo = await foto.read()
+    if len(conteudo) > MAX_SIZE_BYTES:
+        return RedirectResponse(
+            url=f"{redirect_url}?erro=Arquivo+inválido.+Envie+uma+imagem+JPEG%2C+PNG+ou+WebP+com+até+2+MB",
+            status_code=303,
+        )
+
+    # Determinar extensão
+    ext_map = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp"}
+    ext = ext_map[foto.content_type]
+    filename = f"avatar_{usuario.id}.{ext}"
+    filepath = os.path.join(AVATARS_DIR, filename)
+
+    # Salvar arquivo (substitui o anterior)
+    with open(filepath, "wb") as f:
+        f.write(conteudo)
+
+    # Atualizar banco
+    usuario.foto_perfil = f"avatars/{filename}"
+    db.commit()
+
+    return RedirectResponse(
+        url=f"{redirect_url}?sucesso=Foto+de+perfil+atualizada+com+sucesso",
+        status_code=303,
+    )
+
+
+# ── Perfis por tipo de usuário ────────────────────────────────────────────────
+
+@app.get("/perfil/professor/{professor_id}", response_class=HTMLResponse)
+def perfil_professor(professor_id: int, request: Request, db: Session = Depends(get_db)):
+    usuario = get_usuario_logado(request, db)
+    if not usuario:
+        return RedirectResponse(url="/", status_code=303)
+    perfil = db.query(User).filter(
+        User.id == professor_id, User.tipo == "PROFESSOR", User.ativo == True
+    ).first()
+    if not perfil:
+        return RedirectResponse(url="/dashboard?erro=Professor+não+encontrado", status_code=303)
+    tematicas = db.query(Tematica).filter(Tematica.professor_id == professor_id).order_by(Tematica.criado_em.desc()).all()
+    return templates.TemplateResponse("perfil_professor.html", {
+        "request": request, "usuario": usuario,
+        "perfil": perfil, "eh_proprio": (usuario.id == professor_id),
+        "tematicas": tematicas,
+        "sucesso": request.query_params.get("sucesso"),
+        "erro": request.query_params.get("erro"),
+        "active_page": "tematicas",
+    })
+
+
+@app.post("/perfil/professor/{professor_id}", response_class=HTMLResponse)
+def salvar_perfil_professor(
+    professor_id: int, request: Request,
+    bio: str = Form(""), cidade: str = Form(""), telefone: str = Form(""),
+    linkedin: str = Form(""), db: Session = Depends(get_db),
+):
+    usuario = get_usuario_logado(request, db)
+    if not usuario or usuario.id != professor_id:
+        return RedirectResponse(url="/dashboard", status_code=303)
+    perfil = db.query(User).filter(User.id == professor_id, User.tipo == "PROFESSOR").first()
+    if not perfil:
+        return RedirectResponse(url="/dashboard", status_code=303)
+    perfil.bio = bio; perfil.cidade = cidade; perfil.telefone = telefone; perfil.linkedin = linkedin
+    db.commit()
+    return RedirectResponse(url=f"/perfil/professor/{professor_id}?sucesso=Perfil+atualizado+com+sucesso", status_code=303)
+
+
+@app.get("/perfil/coordenador/{coordenador_id}", response_class=HTMLResponse)
+def perfil_coordenador(coordenador_id: int, request: Request, db: Session = Depends(get_db)):
+    usuario = get_usuario_logado(request, db)
+    if not usuario:
+        return RedirectResponse(url="/", status_code=303)
+    perfil = db.query(User).filter(
+        User.id == coordenador_id, User.tipo.in_(["COORDENADOR", "ADMIN"]), User.ativo == True
+    ).first()
+    if not perfil:
+        return RedirectResponse(url="/dashboard?erro=Usuário+não+encontrado", status_code=303)
+    return templates.TemplateResponse("perfil_coordenador.html", {
+        "request": request, "usuario": usuario,
+        "perfil": perfil, "eh_proprio": (usuario.id == coordenador_id),
+        "sucesso": request.query_params.get("sucesso"),
+        "erro": request.query_params.get("erro"),
+        "active_page": "dashboard",
+    })
+
+
+@app.post("/perfil/coordenador/{coordenador_id}", response_class=HTMLResponse)
+def salvar_perfil_coordenador(
+    coordenador_id: int, request: Request,
+    bio: str = Form(""), cidade: str = Form(""), telefone: str = Form(""),
+    linkedin: str = Form(""), db: Session = Depends(get_db),
+):
+    usuario = get_usuario_logado(request, db)
+    if not usuario or usuario.id != coordenador_id:
+        return RedirectResponse(url="/dashboard", status_code=303)
+    perfil = db.query(User).filter(User.id == coordenador_id).first()
+    if not perfil:
+        return RedirectResponse(url="/dashboard", status_code=303)
+    perfil.bio = bio; perfil.cidade = cidade; perfil.telefone = telefone; perfil.linkedin = linkedin
+    db.commit()
+    return RedirectResponse(url=f"/perfil/coordenador/{coordenador_id}?sucesso=Perfil+atualizado+com+sucesso", status_code=303)
+
+
+@app.get("/perfil/empresa/{empresa_id}", response_class=HTMLResponse)
+def perfil_empresa(empresa_id: int, request: Request, db: Session = Depends(get_db)):
+    usuario = get_usuario_logado(request, db)
+    if not usuario:
+        return RedirectResponse(url="/", status_code=303)
+    perfil = db.query(User).filter(
+        User.id == empresa_id, User.tipo == "EMPRESA", User.ativo == True
+    ).first()
+    if not perfil:
+        return RedirectResponse(url="/dashboard?erro=Empresa+não+encontrada", status_code=303)
+    return templates.TemplateResponse("perfil_empresa.html", {
+        "request": request, "usuario": usuario,
+        "perfil": perfil, "eh_proprio": (usuario.id == empresa_id),
+        "sucesso": request.query_params.get("sucesso"),
+        "erro": request.query_params.get("erro"),
+        "active_page": "portfolio",
+    })
+
+
+@app.post("/perfil/empresa/{empresa_id}", response_class=HTMLResponse)
+def salvar_perfil_empresa(
+    empresa_id: int, request: Request,
+    bio: str = Form(""), cidade: str = Form(""), telefone: str = Form(""),
+    linkedin: str = Form(""), db: Session = Depends(get_db),
+):
+    usuario = get_usuario_logado(request, db)
+    if not usuario or usuario.id != empresa_id:
+        return RedirectResponse(url="/dashboard", status_code=303)
+    perfil = db.query(User).filter(User.id == empresa_id, User.tipo == "EMPRESA").first()
+    if not perfil:
+        return RedirectResponse(url="/dashboard", status_code=303)
+    perfil.bio = bio; perfil.cidade = cidade; perfil.telefone = telefone; perfil.linkedin = linkedin
+    db.commit()
+    return RedirectResponse(url=f"/perfil/empresa/{empresa_id}?sucesso=Perfil+atualizado+com+sucesso", status_code=303)

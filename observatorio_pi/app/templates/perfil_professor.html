@@ -1,0 +1,152 @@
+{% extends "base_auth.html" %}
+{% block title %}{{ perfil.nome }} — Perfil — Observatório PI{% endblock %}
+{% block content %}
+
+{% if sucesso %}<div class="alert alert-success alert-dismissible d-flex align-items-center gap-2 py-2 mb-3"><i class="bi bi-check-circle-fill flex-shrink-0"></i><span>{{ sucesso }}</span><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>{% endif %}
+{% if erro %}<div class="alert alert-danger alert-dismissible d-flex align-items-center gap-2 py-2 mb-3"><i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i><span>{{ erro }}</span><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>{% endif %}
+
+<div class="row g-4">
+    <!-- Card de perfil -->
+    <div class="col-lg-4">
+        <div class="card mb-3" style="overflow:hidden;">
+            <div style="height:80px;background:linear-gradient(135deg,var(--senac-blue-dark) 0%,var(--senac-blue) 100%);"></div>
+            <div class="p-4 pt-0">
+                <div class="d-flex justify-content-between align-items-end mb-3" style="margin-top:-36px;">
+                    {{ avatar(perfil, 80) }}
+                    {% if eh_proprio %}
+                    <button class="btn btn-outline-primary btn-sm" style="border-radius:8px;"
+                            data-bs-toggle="modal" data-bs-target="#modalEditarPerfil">
+                        <i class="bi bi-pencil me-1"></i>Editar perfil
+                    </button>
+                    {% endif %}
+                </div>
+
+                <h5 class="fw-bold mb-0" style="color:#1a1a2e;">{{ perfil.nome }}</h5>
+                <div class="small mb-3" style="color:#6b7280;">
+                    <span class="badge" style="background:#eff6ff;color:var(--senac-blue);border:1px solid #bfdbfe;">Professor</span>
+                </div>
+
+                {% if perfil.bio %}
+                <div class="mb-3">
+                    <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;color:#9aa5b4;letter-spacing:.06em;margin-bottom:.4rem;">Sobre</div>
+                    <p class="small mb-0" style="color:#374151;line-height:1.6;white-space:pre-wrap;">{{ perfil.bio }}</p>
+                </div>
+                {% endif %}
+
+                {% if perfil.cidade %}
+                <div class="small mb-2" style="color:#6b7280;"><i class="bi bi-geo-alt me-1" style="color:var(--senac-blue);"></i>{{ perfil.cidade }}</div>
+                {% endif %}
+
+                <div class="d-flex flex-column gap-2 pt-3 border-top mt-3">
+                    <a href="mailto:{{ perfil.email }}" class="btn btn-outline-secondary btn-sm text-start" style="border-radius:8px;">
+                        <i class="bi bi-envelope me-2" style="color:var(--senac-blue);"></i>{{ perfil.email }}
+                    </a>
+                    {% if perfil.telefone and eh_proprio %}
+                    <a href="tel:{{ perfil.telefone }}" class="btn btn-outline-secondary btn-sm text-start" style="border-radius:8px;">
+                        <i class="bi bi-telephone me-2" style="color:var(--senac-blue);"></i>{{ perfil.telefone }}
+                    </a>
+                    {% endif %}
+                    {% if perfil.linkedin %}
+                    <a href="{{ perfil.linkedin }}" target="_blank" rel="noopener" class="btn btn-sm text-start" style="border-radius:8px;background:#0a66c2;color:#fff;">
+                        <i class="bi bi-linkedin me-2"></i>LinkedIn
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Temáticas do professor -->
+    <div class="col-lg-8">
+        <div class="fw-bold mb-3" style="color:#1a1a2e;font-size:1rem;">
+            <i class="bi bi-lightbulb me-2" style="color:var(--senac-blue);"></i>
+            Temáticas de {{ perfil.nome.split()[0] }}
+        </div>
+        {% if tematicas %}
+        <div class="d-flex flex-column gap-3">
+            {% for t in tematicas %}
+            <div class="card" style="overflow:hidden;cursor:pointer;" onclick="window.location='/tematicas/{{ t.id }}'">
+                <div style="height:3px;background:{% if t.status=='CONCLUIDA' %}linear-gradient(90deg,var(--senac-blue),#16a34a){% elif t.status=='EM_ANDAMENTO' %}linear-gradient(90deg,var(--senac-blue),var(--senac-orange)){% else %}#e4eaf2{% endif %};"></div>
+                <div class="p-3 d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="fw-semibold" style="color:#1a1a2e;">{{ t.titulo }}</div>
+                        {% if t.turma %}<div class="small" style="color:#6b7280;"><i class="bi bi-building me-1"></i>{{ t.turma.nome }} — {{ t.turma.semestre }}</div>{% endif %}
+                    </div>
+                    <div class="d-flex gap-2 align-items-center">
+                        <span class="badge" style="background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;font-size:.68rem;"><i class="bi bi-people me-1"></i>{{ t.equipes|length }}</span>
+                        {% if t.status == 'CONCLUIDA' %}
+                        <span class="badge" style="background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0;font-size:.7rem;">Concluída</span>
+                        {% elif t.status == 'EM_ANDAMENTO' %}
+                        <span class="badge" style="background:#fffbeb;color:#92400e;border:1px solid #fde68a;font-size:.7rem;">Em andamento</span>
+                        {% else %}
+                        <span class="badge" style="background:#eff6ff;color:var(--senac-blue);border:1px solid #bfdbfe;font-size:.7rem;">Aberta</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="card"><div class="text-center py-5" style="color:#9aa5b4;">
+            <i class="bi bi-lightbulb fs-2 d-block mb-2"></i>Nenhuma temática ainda.
+        </div></div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal edição de perfil (somente para o próprio professor) -->
+{% if eh_proprio %}
+<div class="modal fade" id="modalEditarPerfil" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" style="border-radius:12px;border:none;">
+            <div class="modal-header border-0">
+                <h5 class="modal-title fw-bold">Editar meu perfil</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="/perfil/professor/{{ perfil.id }}" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <!-- Upload de foto -->
+                    <div class="mb-3 p-3 rounded-2" style="background:#f8fafc;border:1px solid #e4eaf2;">
+                        <label class="form-label fw-semibold" style="font-size:.85rem;color:#374151;"><i class="bi bi-camera me-1"></i>Foto de perfil</label>
+                        <div class="d-flex align-items-center gap-3">
+                            {{ avatar(perfil, 48) }}
+                            <div class="flex-grow-1">
+                                <input type="file" name="foto" class="form-control form-control-sm"
+                                       accept="image/jpeg,image/png,image/webp"
+                                       onchange="this.form.action='/meu-perfil/foto'; this.form.submit();">
+                                <div class="form-text">JPEG, PNG ou WebP · máx. 2 MB</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label fw-semibold" style="font-size:.85rem;color:#374151;">Apresentação pessoal</label>
+                            <textarea name="bio" class="form-control" rows="3" placeholder="Conte um pouco sobre você...">{{ perfil.bio }}</textarea>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label fw-semibold" style="font-size:.85rem;color:#374151;">Cidade</label>
+                            <input type="text" name="cidade" class="form-control" value="{{ perfil.cidade }}">
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label fw-semibold" style="font-size:.85rem;color:#374151;">Telefone</label>
+                            <input type="text" name="telefone" class="form-control" value="{{ perfil.telefone }}">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold" style="font-size:.85rem;color:#374151;">LinkedIn</label>
+                            <div class="input-group">
+                                <span class="input-group-text" style="background:#f8fafc;border-color:#e4eaf2;"><i class="bi bi-linkedin" style="color:#0a66c2;"></i></span>
+                                <input type="url" name="linkedin" class="form-control" placeholder="https://linkedin.com/in/..." value="{{ perfil.linkedin }}">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-outline-secondary" style="border-radius:8px;" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" style="border-radius:8px;"><i class="bi bi-check-lg me-1"></i>Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

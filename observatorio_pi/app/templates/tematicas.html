@@ -21,6 +21,15 @@
                 {% for t in turmas %}<option value="{{ t.id }}" {% if filtro_turma == t.id|string %}selected{% endif %}>{{ t.nome }} — {{ t.semestre }}</option>{% endfor %}
             </select>
         </div>
+        {% if usuario.tipo in ('ADMIN','COORDENADOR') and professores %}
+        <div class="col-sm-4">
+            <label class="form-label fw-semibold mb-1" style="font-size:.82rem;color:#374151;">Filtrar por professor</label>
+            <select name="filtro_professor" class="form-select form-select-sm">
+                <option value="">Todos os professores</option>
+                {% for p in professores %}<option value="{{ p.id }}" {% if filtro_professor == p.id|string %}selected{% endif %}>{{ p.nome }}</option>{% endfor %}
+            </select>
+        </div>
+        {% endif %}
         <div class="col-sm-3 d-flex gap-2">
             <button type="submit" class="btn btn-primary btn-sm" style="border-radius:8px;"><i class="bi bi-funnel me-1"></i>Filtrar</button>
             <a href="/tematicas" class="btn btn-outline-secondary btn-sm" style="border-radius:8px;">Limpar</a>

@@ -129,8 +129,10 @@
             font-size: .875rem;
             font-weight: 500;
             transition: background .15s, color .15s;
+            display: flex;
+            align-items: center;
         }
-        .sidebar .nav-link i { width: 20px; }
+        .sidebar .nav-link i { width: 20px; text-align: center; flex-shrink: 0; }
         .sidebar .nav-link:hover {
             background: #EBF3FC;
             color: var(--senac-blue);
@@ -237,9 +239,9 @@
         {% block content %}{% endblock %}
     </div>
 </div>
-{% endblock %}
-
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 {% block scripts %}{% endblock %}
+{% endblock %}
+
 </body>
 </html>

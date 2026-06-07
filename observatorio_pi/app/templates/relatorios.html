@@ -68,10 +68,12 @@
             <table class="table table-hover align-middle mb-0">
                 <thead><tr><th class="ps-0">#</th><th>Professor</th><th class="text-end pe-0">Avaliações</th></tr></thead>
                 <tbody>
-                    {% for nome_p, total in top_professores %}
+                    {% for prof_id, nome_p, total in top_professores %}
                     <tr>
                         <td class="ps-0">{% if loop.index==1 %}🥇{% elif loop.index==2 %}🥈{% elif loop.index==3 %}🥉{% else %}<span class="text-muted small">{{ loop.index }}</span>{% endif %}</td>
-                        <td class="fw-semibold" style="color:#1a1a2e;">{{ nome_p }}</td>
+                        <td class="fw-semibold" style="color:#1a1a2e;">
+                            <a href="/relatorios/professor/{{ prof_id }}" class="text-decoration-none" style="color:#1a1a2e;">{{ nome_p }}</a>
+                        </td>
                         <td class="text-end pe-0"><span class="badge" style="background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0;">{{ total }}</span></td>
                     </tr>
                     {% endfor %}

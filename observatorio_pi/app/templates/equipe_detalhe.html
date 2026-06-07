@@ -203,7 +203,37 @@
             <div class="p-4">
                 <div class="fw-bold mb-1" style="color:#1a1a2e;"><i class="bi bi-clipboard-check me-2" style="color:var(--senac-orange);"></i>{% if ja_avaliou %}Atualizar avaliação{% else %}Avaliar equipe{% endif %}</div>
                 <p class="mb-4" style="font-size:.82rem;color:#6b7280;">Selecione o conceito SENAC para cada critério.</p>
-                <form method="post" action="/equipes/{{ equipe.id }}/avaliar">
+
+                <style>
+                /* Estilos dos botões de conceito */
+                .conceito-group { display:flex; gap:6px; flex-wrap:wrap; }
+                .conceito-btn {
+                    cursor:pointer;
+                    border-radius:20px;
+                    font-size:.72rem;
+                    font-weight:600;
+                    padding:4px 12px;
+                    border:2px solid transparent;
+                    transition: all .15s;
+                    user-select:none;
+                }
+                .conceito-btn.INSUFICIENTE { background:#fef2f2; color:#991b1b; border-color:#fecaca; }
+                .conceito-btn.REGULAR      { background:#fff7ed; color:#c2410c; border-color:#fed7aa; }
+                .conceito-btn.BOM          { background:#fffbeb; color:#92400e; border-color:#fde68a; }
+                .conceito-btn.OTIMO        { background:#eff6ff; color:var(--senac-blue); border-color:#bfdbfe; }
+                .conceito-btn.EXCELENTE    { background:#ecfdf5; color:#065f46; border-color:#a7f3d0; }
+
+                .conceito-btn.INSUFICIENTE.selecionado { background:#991b1b; color:#fff; border-color:#991b1b; box-shadow:0 0 0 3px rgba(153,27,27,.25); }
+                .conceito-btn.REGULAR.selecionado      { background:#c2410c; color:#fff; border-color:#c2410c; box-shadow:0 0 0 3px rgba(194,65,12,.25); }
+                .conceito-btn.BOM.selecionado          { background:#92400e; color:#fff; border-color:#92400e; box-shadow:0 0 0 3px rgba(146,64,14,.25); }
+                .conceito-btn.OTIMO.selecionado        { background:var(--senac-blue); color:#fff; border-color:var(--senac-blue); box-shadow:0 0 0 3px rgba(13,94,165,.25); }
+                .conceito-btn.EXCELENTE.selecionado    { background:#065f46; color:#fff; border-color:#065f46; box-shadow:0 0 0 3px rgba(6,95,70,.25); }
+
+                .conceito-btn:hover { opacity:.85; transform:translateY(-1px); }
+                .conceito-btn.selecionado:hover { opacity:1; transform:none; }
+                </style>
+
+                <form method="post" action="/equipes/{{ equipe.id }}/avaliar" id="formAvaliacao">
                     <div class="row g-3 mb-4">
                         {% set criterios = [
                             ('conceito_conteudo',     'Conteúdo / Relevância',       'bi-book'),
@@ -213,48 +243,69 @@
                             ('conceito_equipe',       'Trabalho em Equipe',          'bi-people'),
                         ] %}
                         {% for campo, label, icone in criterios %}
+                        {% set val_atual = (avaliacao|attr(campo)) if avaliacao else 'BOM' %}
                         <div class="col-sm-6">
-                            <label class="form-label fw-semibold" style="font-size:.82rem;color:#374151;"><i class="bi {{ icone }} me-1" style="color:var(--senac-blue);"></i>{{ label }}</label>
-                            <div class="d-flex gap-1 flex-wrap">
+                            <label class="form-label fw-semibold" style="font-size:.82rem;color:#374151;">
+                                <i class="bi {{ icone }} me-1" style="color:var(--senac-blue);"></i>{{ label }}
+                            </label>
+                            <input type="hidden" name="{{ campo }}" id="input_{{ campo }}" value="{{ val_atual }}" required>
+                            <div class="conceito-group" data-field="{{ campo }}">
                                 {% for c in conceitos %}
-                                <input type="radio" class="btn-check" name="{{ campo }}" id="{{ campo }}_{{ c }}" value="{{ c }}" {% if avaliacao and avaliacao[campo] == c %}checked{% elif not avaliacao and c == 'BOM' %}checked{% endif %} required>
-                                <label class="btn btn-sm" for="{{ campo }}_{{ c }}"
-                                       style="border-radius:20px;font-size:.72rem;font-weight:600;
-                                       {% if c=='INSUFICIENTE' %}background:#fef2f2;color:#991b1b;border:1px solid #fecaca;
-                                       {% elif c=='REGULAR' %}background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;
-                                       {% elif c=='BOM' %}background:#fffbeb;color:#92400e;border:1px solid #fde68a;
-                                       {% elif c=='OTIMO' %}background:#eff6ff;color:var(--senac-blue);border:1px solid #bfdbfe;
-                                       {% else %}background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0;{% endif %}">
+                                <button type="button"
+                                        class="conceito-btn {{ c }}{% if val_atual == c %} selecionado{% endif %}"
+                                        data-field="{{ campo }}"
+                                        data-value="{{ c }}"
+                                        onclick="selecionarConceito('{{ campo }}', '{{ c }}', this)">
                                     {{ conceito_label[c] }}
-                                </label>
+                                </button>
                                 {% endfor %}
                             </div>
                         </div>
                         {% endfor %}
+
+                        {# Conceito Final #}
+                        {% set val_final = avaliacao.conceito_final if avaliacao else 'BOM' %}
                         <div class="col-12">
-                            <label class="form-label fw-semibold" style="font-size:.82rem;color:#374151;"><i class="bi bi-award me-1" style="color:var(--senac-orange);"></i>Conceito Final</label>
-                            <div class="d-flex gap-2 flex-wrap">
+                            <label class="form-label fw-semibold" style="font-size:.82rem;color:#374151;">
+                                <i class="bi bi-award me-1" style="color:var(--senac-orange);"></i>Conceito Final
+                            </label>
+                            <input type="hidden" name="conceito_final" id="input_conceito_final" value="{{ val_final }}" required>
+                            <div class="conceito-group" data-field="conceito_final">
                                 {% for c in conceitos %}
-                                <input type="radio" class="btn-check" name="conceito_final" id="final_{{ c }}" value="{{ c }}" {% if avaliacao and avaliacao.conceito_final == c %}checked{% elif not avaliacao and c == 'BOM' %}checked{% endif %} required>
-                                <label class="btn btn-sm fw-bold px-3" for="final_{{ c }}"
-                                       style="border-radius:20px;font-size:.78rem;
-                                       {% if c=='INSUFICIENTE' %}background:#fef2f2;color:#991b1b;border:2px solid #fecaca;
-                                       {% elif c=='REGULAR' %}background:#fff7ed;color:#c2410c;border:2px solid #fed7aa;
-                                       {% elif c=='BOM' %}background:#fffbeb;color:#92400e;border:2px solid #fde68a;
-                                       {% elif c=='OTIMO' %}background:#eff6ff;color:var(--senac-blue);border:2px solid #bfdbfe;
-                                       {% else %}background:#ecfdf5;color:#065f46;border:2px solid #a7f3d0;{% endif %}">
+                                <button type="button"
+                                        class="conceito-btn {{ c }}{% if val_final == c %} selecionado{% endif %}"
+                                        style="font-size:.78rem;padding:6px 16px;"
+                                        data-field="conceito_final"
+                                        data-value="{{ c }}"
+                                        onclick="selecionarConceito('conceito_final', '{{ c }}', this)">
                                     {{ conceito_label[c] }}
-                                </label>
+                                </button>
                                 {% endfor %}
                             </div>
                         </div>
                     </div>
+
                     <div class="mb-4">
                         <label class="form-label fw-semibold" style="font-size:.82rem;color:#374151;">Comentário / Feedback</label>
                         <textarea name="comentario" class="form-control" rows="3" placeholder="Deixe um feedback construtivo...">{{ ja_avaliou.comentario if ja_avaliou else '' }}</textarea>
                     </div>
-                    <button type="submit" class="btn btn-success" style="border-radius:8px;"><i class="bi bi-check-lg me-1"></i>{% if ja_avaliou %}Atualizar avaliação{% else %}Registrar avaliação{% endif %}</button>
+                    <button type="submit" class="btn btn-success" style="border-radius:8px;">
+                        <i class="bi bi-check-lg me-1"></i>{% if ja_avaliou %}Atualizar avaliação{% else %}Registrar avaliação{% endif %}
+                    </button>
                 </form>
+
+                <script>
+                function selecionarConceito(campo, valor, btnClicado) {
+                    // Atualiza o input hidden com o valor selecionado
+                    document.getElementById('input_' + campo).value = valor;
+                    // Remove 'selecionado' de todos os botões desse campo
+                    document.querySelectorAll('.conceito-btn[data-field="' + campo + '"]').forEach(function(btn) {
+                        btn.classList.remove('selecionado');
+                    });
+                    // Adiciona 'selecionado' no botão clicado
+                    btnClicado.classList.add('selecionado');
+                }
+                </script>
             </div>
         </div>
         {% endif %}

@@ -1,0 +1,96 @@
+{% extends "base_auth.html" %}
+{% block title %}{{ professor.nome }} — Relatório — Observatório PI{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb small">
+        <li class="breadcrumb-item"><a href="/dashboard">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="/relatorios">Relatórios</a></li>
+        <li class="breadcrumb-item active">{{ professor.nome }}</li>
+    </ol>
+</nav>
+
+<!-- Cabeçalho do professor -->
+<div class="card mb-4" style="overflow:hidden;">
+    <div style="height:5px;background:linear-gradient(90deg,var(--senac-blue),var(--senac-orange));"></div>
+    <div class="p-4 d-flex align-items-center gap-4">
+        {{ avatar(professor, 64) }}
+        <div>
+            <h4 class="fw-bold mb-0" style="color:#1a1a2e;">{{ professor.nome }}</h4>
+            <div class="small" style="color:#6b7280;"><i class="bi bi-envelope me-1"></i>{{ professor.email }}</div>
+            <span class="badge mt-1" style="background:#eff6ff;color:var(--senac-blue);border:1px solid #bfdbfe;">Professor</span>
+        </div>
+    </div>
+</div>
+
+<!-- Totais -->
+<div class="row g-3 mb-4">
+    {% for icon, val, label, cor in [
+        ('bi-lightbulb', total_tematicas, 'Temáticas', 'orange'),
+        ('bi-people', total_equipes, 'Equipes', 'blue'),
+        ('bi-clipboard-check', total_avaliacoes, 'Avaliações', 'green')
+    ] %}
+    <div class="col-sm-4">
+        <div class="card p-3 h-100">
+            <div class="d-flex align-items-center gap-3">
+                <div class="stat-card-icon {{ cor }}"><i class="bi {{ icon }}"></i></div>
+                <div>
+                    <div class="fs-2 fw-bold" style="color:#1a1a2e;line-height:1.1;">{{ val }}</div>
+                    <div class="page-subtitle">{{ label }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Lista de temáticas -->
+<div class="card">
+    <div class="px-4 pt-4 pb-3 fw-semibold" style="color:#1a1a2e;">
+        <i class="bi bi-lightbulb me-2" style="color:var(--senac-orange);"></i>Temáticas orientadas
+    </div>
+    {% if dados_tematicas %}
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th class="ps-4">Temática</th>
+                    <th>Turma</th>
+                    <th>Status</th>
+                    <th class="text-center">Equipes</th>
+                    <th class="text-center pe-4">Avaliações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in dados_tematicas %}
+                {% set t = d.tematica %}
+                <tr style="cursor:pointer;" onclick="window.location='/tematicas/{{ t.id }}'">
+                    <td class="ps-4 fw-semibold" style="color:#1a1a2e;">{{ t.titulo }}</td>
+                    <td class="small" style="color:#6b7280;">{{ t.turma.nome if t.turma else '—' }}</td>
+                    <td>
+                        {% if t.status == 'CONCLUIDA' %}
+                        <span class="badge" style="background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0;font-size:.7rem;">Concluída</span>
+                        {% elif t.status == 'EM_ANDAMENTO' %}
+                        <span class="badge" style="background:#fffbeb;color:#92400e;border:1px solid #fde68a;font-size:.7rem;">Em andamento</span>
+                        {% else %}
+                        <span class="badge" style="background:#eff6ff;color:var(--senac-blue);border:1px solid #bfdbfe;font-size:.7rem;">Aberta</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        <span class="badge" style="background:#eff6ff;color:var(--senac-blue);border:1px solid #bfdbfe;">{{ d.n_equipes }}</span>
+                    </td>
+                    <td class="text-center pe-4">
+                        <span class="badge" style="background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0;">{{ d.n_avaliacoes }}</span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center py-5" style="color:#9aa5b4;">
+        <i class="bi bi-lightbulb fs-2 d-block mb-2"></i>
+        Nenhuma temática associada a este professor.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
