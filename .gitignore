@@ -39,3 +39,7 @@ desktop.ini
 
 # Logs
 *.log
+
+# Testes / cache de ferramentas
+.hypothesis/
+.pytest_cache/

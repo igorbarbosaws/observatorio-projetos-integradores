@@ -1,4 +1,0 @@
-# file: C:\Users\igorb\OneDrive\Documentos\GitHub\observatorio-projetos-integradores\observatorio_pi\app\models\project.py
-# hypothesis_version: 6.131.15
-
-['ABERTA', 'Avaliacao', 'AvaliacaoAluno', 'BOM', 'Bom', 'EM_ANDAMENTO', 'EXCELENTE', 'EntregaProjeto', 'Equipe', 'EquipeMembro', 'Excelente', 'INSUFICIENTE', 'Insuficiente', 'OTIMO', 'REGULAR', 'Regular', 'Tematica', 'Turma', 'User', 'all, delete-orphan', 'avaliacoes', 'avaliacoes_aluno', 'entregas', 'entregas_projeto', 'equipe', 'equipe_membros', 'equipes', 'equipes.id', 'membros', 'tematica', 'tematicas', 'tematicas.id', 'turma', 'turmas', 'turmas.id', 'users.id', 'Ótimo']
