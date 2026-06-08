@@ -1,8 +1,8 @@
-{% extends "base_auth.html" %}
-{% block title %}Relatórios — Observatório PI{% endblock %}
+﻿{% extends "base_auth.html" %}
+{% block title %}Relatórios — Projetos Integradores{% endblock %}
 {% block content %}
 <div class="page-title mb-1"><i class="bi bi-bar-chart-line me-2" style="color:var(--senac-blue);"></i>Relatórios</div>
-<div class="page-subtitle mb-4">Visão geral e estatísticas do Observatório PI</div>
+<div class="page-subtitle mb-4">Visão geral e estatísticas dos Projetos Integradores</div>
 
 <div class="row g-3 mb-4">
     {% for icon, val, label, cor in [('bi-lightbulb', total_tematicas, 'Temáticas', 'orange'),('bi-people', total_equipes, 'Equipes', 'blue'),('bi-check2-circle', total_finalizadas, 'Finalizadas', 'green'),('bi-clipboard-check', total_avaliacoes, 'Avaliações', 'blue')] %}
